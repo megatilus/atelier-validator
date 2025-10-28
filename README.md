@@ -5,6 +5,10 @@ A modern, type-safe validation library for **Kotlin Multiplatform** that makes d
 > [!IMPORTANT]
 > Full documentation website coming soon
 
+[![Maven Central](https://img.shields.io/maven-central/v/dev.megatilus.atelier/validator-core.svg?label=Maven%20Central)](https://search.maven.org/artifact/dev.megatilus.atelier/validator-core)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.2.20-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 ---
 
 ## Philosophy
