@@ -2,6 +2,9 @@
 
 A modern, type-safe validation library for **Kotlin Multiplatform** that makes data validation elegant, readable, and maintainable.
 
+> [!IMPORTANT]
+> Full documentation website coming soon
+
 ---
 
 ## Philosophy
@@ -152,17 +155,17 @@ val validator = atelierValidator<User> {
 ## Validation Modes
 
 ### Collect All Errors (default)
+Returns all validation errors
 
 ```kotlin
 val result = validator.validate(user)
-// Returns all validation errors
 ```
 
 ### Fail-Fast Mode
+Stops at the first validation error
 
 ```kotlin
 val result = validator.validateFirst(user)
-// Stops at the first validation error
 ```
 
 ---

@@ -5,8 +5,7 @@ plugins {
 
 mavenPublishing {
     publishToMavenCentral()
-
-    // signAllPublications()
+    signAllPublications()
 
     coordinates(
         groupId = project.group.toString(),
