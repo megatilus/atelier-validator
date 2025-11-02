@@ -17,7 +17,7 @@ mavenPublishing {
         name.set(project.name)
         description.set("Atelier Validator - ${project.name}")
         inceptionYear.set("2025")
-        url.set("https://megatilus.dev")
+        url.set("https://github.com/megatilus/atelier-validator")
 
         licenses {
             license {
