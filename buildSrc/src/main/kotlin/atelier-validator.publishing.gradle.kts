@@ -15,7 +15,7 @@ mavenPublishing {
 
     pom {
         name.set(project.name)
-        description.set("Atelier Validator - ${project.name}")
+        description.set("Modern type-safe Kotlin validation library")
         inceptionYear.set("2025")
         url.set("https://github.com/megatilus/atelier-validator")
 
