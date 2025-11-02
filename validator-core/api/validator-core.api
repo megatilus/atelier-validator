@@ -22,8 +22,8 @@ public final class dev/megatilus/atelier/builders/FieldValidatorBuilder {
 }
 
 public final class dev/megatilus/atelier/builders/FieldValidatorBuilderExtensionsKt {
-	public static final fun constraintExtension (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/String;Ldev/megatilus/atelier/results/ValidatorCode;Lkotlin/jvm/functions/Function1;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
-	public static synthetic fun constraintExtension$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/String;Ldev/megatilus/atelier/results/ValidatorCode;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
+	public static final fun constraintForExtension (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/String;Ldev/megatilus/atelier/results/ValidatorCode;Lkotlin/jvm/functions/Function1;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
+	public static synthetic fun constraintForExtension$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/String;Ldev/megatilus/atelier/results/ValidatorCode;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 }
 
 public final class dev/megatilus/atelier/builders/ValidatorBuilder {
@@ -232,14 +232,14 @@ public final class dev/megatilus/atelier/validators/NumericValidatorsKt {
 	public static synthetic fun between$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/Number;Ljava/lang/String;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static final fun betweenNullable (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/Number;Ljava/lang/String;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static synthetic fun betweenNullable$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/Number;Ljava/lang/String;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
+	public static final fun isGreaterThan (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
+	public static synthetic fun isGreaterThan$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static final fun isGreaterThanNullable (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static synthetic fun isGreaterThanNullable$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static final fun isGreaterThanOrEqualTo (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static synthetic fun isGreaterThanOrEqualTo$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static final fun isGreaterThanOrEqualToNullable (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static synthetic fun isGreaterThanOrEqualToNullable$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
-	public static final fun isGreaterThanTo (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
-	public static synthetic fun isGreaterThanTo$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static final fun isLessThan (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static synthetic fun isLessThan$default (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;ILjava/lang/Object;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
 	public static final fun isLessThanNullable (Ldev/megatilus/atelier/builders/FieldValidatorBuilder;Ljava/lang/Number;Ljava/lang/String;)Ldev/megatilus/atelier/builders/FieldValidatorBuilder;
