@@ -41,6 +41,7 @@ public class FieldValidatorBuilder<T : Any, R> internal constructor(
         val c = Constraint(hint = hint, code = code, predicate = predicate)
         constraints.add(c)
         updateValidator()
+
         return this
     }
 
@@ -49,9 +50,12 @@ public class FieldValidatorBuilder<T : Any, R> internal constructor(
         code: ValidatorCode = ValidatorCode.CUSTOM_ERROR,
         message: String = "$fieldName validation failed",
         predicate: (R) -> Boolean
-    ): FieldValidatorBuilder<T, R> {
-        return constraint(hint = message, code = code, predicate = predicate)
-    }
+    ): FieldValidatorBuilder<T, R> =
+        constraint(
+            hint = message,
+            code = code,
+            predicate = predicate
+        )
 
     public fun isEqualTo(
         selector: (T) -> R,
@@ -59,6 +63,7 @@ public class FieldValidatorBuilder<T : Any, R> internal constructor(
     ): FieldValidatorBuilder<T, R> {
         objectAwareValidations.add { obj, value ->
             val expected = selector(obj)
+
             if (value != expected) {
                 ValidationErrorDetail(
                     fieldName = fieldName,
@@ -70,7 +75,9 @@ public class FieldValidatorBuilder<T : Any, R> internal constructor(
                 null
             }
         }
+
         updateValidator()
+
         return this
     }
 
@@ -78,6 +85,7 @@ public class FieldValidatorBuilder<T : Any, R> internal constructor(
         val fieldValidator = PropertyValidator<R> { value, _ ->
             constraints.mapNotNull { it.validate(value, fieldName) }
         }
+
         validatorBuilder.addFieldValidation(property, fieldName, fieldValidator)
 
         if (objectAwareValidations.isNotEmpty()) {
@@ -85,6 +93,7 @@ public class FieldValidatorBuilder<T : Any, R> internal constructor(
                 val value = property.get(obj)
                 objectAwareValidations.mapNotNull { it(obj, value) }
             }
+
             validatorBuilder.addObjectAwareFieldValidation(property, fieldName, composite)
         }
     }

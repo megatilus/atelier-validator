@@ -25,7 +25,7 @@ import dev.megatilus.atelier.results.ValidatorCode
  * When creating validator extensions, you can use this method:
  * ```
  * fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isFutureDate(message: String? = null) =
- *     constraintExtension(
+ *     constraintForExtension(
  *         hint = message ?: "Date must be in the future",
  *         code = ValidatorCode.INVALID_VALUE
  *     ) { it > Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -35,7 +35,7 @@ import dev.megatilus.atelier.results.ValidatorCode
  * @param code The validation error code
  * @param predicate The validation logic returning true if the value is valid
  */
-public fun <T : Any, R> FieldValidatorBuilder<T, R>.constraintExtension(
+public fun <T : Any, R> FieldValidatorBuilder<T, R>.constraintForExtension(
     hint: String,
     code: ValidatorCode = ValidatorCode.CUSTOM_ERROR,
     predicate: (R) -> Boolean

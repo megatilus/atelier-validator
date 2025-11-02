@@ -8,7 +8,7 @@
 package dev.megatilus.atelier.validator
 
 import dev.megatilus.atelier.builders.FieldValidatorBuilder
-import dev.megatilus.atelier.builders.constraintExtension
+import dev.megatilus.atelier.builders.constraintForExtension
 import dev.megatilus.atelier.results.ValidatorCode
 import kotlinx.datetime.*
 import kotlin.jvm.JvmName
@@ -17,7 +17,7 @@ import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-public fun calculateAge(
+internal fun calculateAge(
     birthDate: LocalDate,
     referenceDate: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault())
 ): Int {
@@ -33,7 +33,7 @@ public fun calculateAge(
     }
 }
 
-public fun parseIsoDate(dateString: String): LocalDate? {
+internal fun parseIsoDate(dateString: String): LocalDate? {
     return try {
         if (dateString.matches(Regex("^\\d{4}-\\d{2}-\\d{2}$"))) {
             LocalDate.parse(dateString)
@@ -45,7 +45,7 @@ public fun parseIsoDate(dateString: String): LocalDate? {
     }
 }
 
-public fun parseIsoDateTime(dateTimeString: String): LocalDateTime? {
+internal fun parseIsoDateTime(dateTimeString: String): LocalDateTime? {
     return try {
         if (dateTimeString.matches(
                 Regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?$")
@@ -61,7 +61,7 @@ public fun parseIsoDateTime(dateTimeString: String): LocalDateTime? {
 }
 
 /** Validates and parses ISO-8601 instant strings with timezone. Returns null if invalid. */
-public fun parseIsoInstant(instantString: String): Instant? {
+internal fun parseIsoInstant(instantString: String): Instant? {
     return try {
         if (instantString.matches(
                 Regex(
@@ -80,51 +80,56 @@ public fun parseIsoInstant(instantString: String): Instant? {
 
 public fun <T : Any> FieldValidatorBuilder<T, String>.isValidIsoDate(
     message: String? = null
-): FieldValidatorBuilder<T, String> = constraintExtension(
-    hint = message ?: "Must be a valid ISO date (YYYY-MM-DD)",
-    code = ValidatorCode.INVALID_FORMAT,
-    predicate = { it.isBlank() || parseIsoDate(it) != null }
-)
+): FieldValidatorBuilder<T, String> =
+    constraintForExtension(
+        hint = message ?: "Must be a valid ISO date (YYYY-MM-DD)",
+        code = ValidatorCode.INVALID_FORMAT,
+        predicate = { it.isBlank() || parseIsoDate(it) != null }
+    )
 
 @JvmName("isValidIsoDateNullable")
 public fun <T : Any> FieldValidatorBuilder<T, String?>.isValidIsoDate(
     message: String? = null
-): FieldValidatorBuilder<T, String?> = constraintExtension(
-    hint = message ?: "Must be a valid ISO date (YYYY-MM-DD)",
-    code = ValidatorCode.INVALID_FORMAT,
-    predicate = { it == null || it.isBlank() || parseIsoDate(it) != null }
-)
+): FieldValidatorBuilder<T, String?> =
+    constraintForExtension(
+        hint = message ?: "Must be a valid ISO date (YYYY-MM-DD)",
+        code = ValidatorCode.INVALID_FORMAT,
+        predicate = { it == null || it.isBlank() || parseIsoDate(it) != null }
+    )
 
 public fun <T : Any> FieldValidatorBuilder<T, String>.isValidIsoDateTime(
     message: String? = null
-): FieldValidatorBuilder<T, String> = constraintExtension(
-    hint = message ?: "Must be a valid ISO datetime (YYYY-MM-DDTHH:MM:SS)",
-    code = ValidatorCode.INVALID_FORMAT,
-    predicate = { it.isBlank() || parseIsoDateTime(it) != null }
-)
+): FieldValidatorBuilder<T, String> =
+    constraintForExtension(
+        hint = message ?: "Must be a valid ISO datetime (YYYY-MM-DDTHH:MM:SS)",
+        code = ValidatorCode.INVALID_FORMAT,
+        predicate = { it.isBlank() || parseIsoDateTime(it) != null }
+    )
 
 @JvmName("isValidIsoDateTimeNullable")
 public fun <T : Any> FieldValidatorBuilder<T, String?>.isValidIsoDateTime(
     message: String? = null
-): FieldValidatorBuilder<T, String?> = constraintExtension(
-    hint = message ?: "Must be a valid ISO datetime (YYYY-MM-DDTHH:MM:SS)",
-    code = ValidatorCode.INVALID_FORMAT,
-    predicate = { it == null || it.isBlank() || parseIsoDateTime(it) != null }
-)
+): FieldValidatorBuilder<T, String?> =
+    constraintForExtension(
+        hint = message ?: "Must be a valid ISO datetime (YYYY-MM-DDTHH:MM:SS)",
+        code = ValidatorCode.INVALID_FORMAT,
+        predicate = { it == null || it.isBlank() || parseIsoDateTime(it) != null }
+    )
 
 public fun <T : Any> FieldValidatorBuilder<T, String>.isValidIsoInstant(
     message: String? = null
-): FieldValidatorBuilder<T, String> = constraintExtension(
-    hint = message ?: "Must be a valid ISO instant (YYYY-MM-DDTHH:MM:SSZ)",
-    code = ValidatorCode.INVALID_FORMAT,
-    predicate = { it.isBlank() || parseIsoInstant(it) != null }
-)
+): FieldValidatorBuilder<T, String> =
+    constraintForExtension(
+        hint = message ?: "Must be a valid ISO instant (YYYY-MM-DDTHH:MM:SSZ)",
+        code = ValidatorCode.INVALID_FORMAT,
+        predicate = { it.isBlank() || parseIsoInstant(it) != null }
+    )
 
 @JvmName("isValidIsoInstantNullable")
 public fun <T : Any> FieldValidatorBuilder<T, String?>.isValidIsoInstant(
     message: String? = null
 ): FieldValidatorBuilder<T, String?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be a valid ISO instant (YYYY-MM-DDTHH:MM:SSZ)",
         code = ValidatorCode.INVALID_FORMAT,
         predicate = { it == null || it.isBlank() || parseIsoInstant(it) != null }
@@ -134,7 +139,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isBefore(
     date: LocalDate,
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be before $date",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it < date }
@@ -144,7 +149,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isAfter(
     date: LocalDate,
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be after $date",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it > date }
@@ -154,31 +159,29 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isBetween(
     start: LocalDate,
     end: LocalDate,
     message: String? = null
-): FieldValidatorBuilder<T, LocalDate> {
-    return constraintExtension(
+): FieldValidatorBuilder<T, LocalDate> =
+    constraintForExtension(
         hint = message ?: "Must be between $start and $end",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it in start..end }
     )
-}
 
 @JvmName("isBetweenNullable")
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isBetween(
     start: LocalDate,
     end: LocalDate,
     message: String? = null
-): FieldValidatorBuilder<T, LocalDate?> {
-    return constraintExtension(
+): FieldValidatorBuilder<T, LocalDate?> =
+    constraintForExtension(
         hint = message ?: "Must be between $start and $end",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it in start..end }
     )
-}
 
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isPast(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be in the past",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it < Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -188,7 +191,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isPast(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isPast(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be in the past",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it < Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -198,7 +201,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isPast(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isFuture(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be in the future",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it > kotlin.time.Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -208,7 +211,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isFuture(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isFuture(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be in the future",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it > Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -217,7 +220,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isFuture(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isToday(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be today",
         code = ValidatorCode.INVALID_VALUE,
         predicate = { it == Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -227,7 +230,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isToday(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isToday(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be today",
         code = ValidatorCode.INVALID_VALUE,
         predicate = { it == null || it == Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -236,7 +239,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isToday(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isPastOrToday(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be today or in the past",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it <= Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -246,7 +249,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isPastOrToday(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isPastOrToday(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be today or in the past",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it <= Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -255,7 +258,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isPastOrToday(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isFutureOrToday(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be today or in the future",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it >= Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -265,7 +268,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isFutureOrToday(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.isFutureOrToday(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be today or in the future",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it >= Clock.System.todayIn(TimeZone.currentSystemDefault()) }
@@ -275,7 +278,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.ageAtLeast(
     minAge: Int,
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be at least $minAge years old",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { calculateAge(it) >= minAge }
@@ -285,7 +288,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.ageAtMost(
     maxAge: Int,
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be at most $maxAge years old",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { calculateAge(it) <= maxAge }
@@ -296,7 +299,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.ageAtMost(
     maxAge: Int,
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDate?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be at most $maxAge years old",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || calculateAge(it) <= maxAge }
@@ -306,32 +309,30 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.ageBetween(
     minAge: Int,
     maxAge: Int,
     message: String? = null
-): FieldValidatorBuilder<T, LocalDate> {
-    return constraintExtension(
+): FieldValidatorBuilder<T, LocalDate> =
+    constraintForExtension(
         hint = message ?: "Must be between $minAge and $maxAge years old",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { calculateAge(it) in minAge..maxAge }
     )
-}
 
 @JvmName("ageBetweenNullable")
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate?>.ageBetween(
     minAge: Int,
     maxAge: Int,
     message: String? = null
-): FieldValidatorBuilder<T, LocalDate?> {
-    return constraintExtension(
+): FieldValidatorBuilder<T, LocalDate?> =
+    constraintForExtension(
         hint = message ?: "Must be between $minAge and $maxAge years old",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || calculateAge(it) in minAge..maxAge }
     )
-}
 
 public fun <T : Any> FieldValidatorBuilder<T, LocalDateTime>.isBefore(
     dateTime: LocalDateTime,
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDateTime> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be before $dateTime",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it < dateTime }
@@ -341,7 +342,7 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDateTime>.isAfter(
     dateTime: LocalDateTime,
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDateTime> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be after $dateTime",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it > dateTime }
@@ -351,20 +352,19 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDateTime>.isAfter(
 public fun <T : Any> FieldValidatorBuilder<T, LocalDateTime?>.isBefore(
     dateTime: LocalDateTime,
     message: String? = null
-): FieldValidatorBuilder<T, LocalDateTime?> {
-    return constraintExtension(
+): FieldValidatorBuilder<T, LocalDateTime?> =
+    constraintForExtension(
         hint = message ?: "Must be before $dateTime",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it < dateTime }
     )
-}
 
 @JvmName("isAfterLocalDateTimeNullable")
 public fun <T : Any> FieldValidatorBuilder<T, LocalDateTime?>.isAfter(
     dateTime: LocalDateTime,
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDateTime?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be after $dateTime",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it > dateTime }
@@ -375,7 +375,8 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDateTime>.isPast(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDateTime> {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    return constraintExtension(
+
+    return constraintForExtension(
         hint = message ?: "Must be in the past",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it < now }
@@ -387,7 +388,8 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDateTime?>.isPast(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDateTime?> {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    return constraintExtension(
+
+    return constraintForExtension(
         hint = message ?: "Must be in the past",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it < now }
@@ -400,7 +402,8 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDateTime>.isFuture(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDateTime> {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    return constraintExtension(
+
+    return constraintForExtension(
         hint = message ?: "Must be in the future",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it > now }
@@ -412,7 +415,8 @@ public fun <T : Any> FieldValidatorBuilder<T, LocalDateTime?>.isFuture(
     message: String? = null
 ): FieldValidatorBuilder<T, LocalDateTime?> {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    return constraintExtension(
+
+    return constraintForExtension(
         hint = message ?: "Must be in the future",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it > now }
@@ -423,7 +427,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant>.isBefore(
     instant: Instant,
     message: String? = null
 ): FieldValidatorBuilder<T, Instant> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be before $instant",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it < instant }
@@ -433,7 +437,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant>.isAfter(
     instant: Instant,
     message: String? = null
 ): FieldValidatorBuilder<T, Instant> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be after $instant",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it > instant }
@@ -444,7 +448,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant?>.isBefore(
     instant: Instant,
     message: String? = null
 ): FieldValidatorBuilder<T, Instant?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be before $instant",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it < instant }
@@ -455,7 +459,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant?>.isAfter(
     instant: Instant,
     message: String? = null
 ): FieldValidatorBuilder<T, Instant?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be after $instant",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it > instant }
@@ -466,7 +470,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant?>.isAfter(
 public fun <T : Any> FieldValidatorBuilder<T, Instant>.isPast(
     message: String? = null
 ): FieldValidatorBuilder<T, Instant> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be in the past",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it < Clock.System.now() }
@@ -476,7 +480,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant>.isPast(
 public fun <T : Any> FieldValidatorBuilder<T, Instant?>.isPast(
     message: String? = null
 ): FieldValidatorBuilder<T, Instant?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be in the past",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it < Clock.System.now() }
@@ -486,7 +490,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant?>.isPast(
 public fun <T : Any> FieldValidatorBuilder<T, Instant>.isFuture(
     message: String? = null
 ): FieldValidatorBuilder<T, Instant> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be in the future",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it > Clock.System.now() }
@@ -495,36 +499,36 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant>.isFuture(
 @JvmName("isFutureInstantNullable")
 public fun <T : Any> FieldValidatorBuilder<T, Instant?>.isFuture(
     message: String? = null
-): FieldValidatorBuilder<T, Instant?> {
-    return constraintExtension(
+): FieldValidatorBuilder<T, Instant?> =
+    constraintForExtension(
         hint = message ?: "Must be in the future",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it > Clock.System.now() }
     )
-}
 
 public fun <T : Any> FieldValidatorBuilder<T, Instant>.isWithinNext(
     duration: Duration,
     message: String? = null
-): FieldValidatorBuilder<T, Instant> = constraintExtension(
-    hint = message ?: "Must be within the next $duration",
-    code = ValidatorCode.OUT_OF_RANGE,
-    predicate = {
-        val now = Clock.System.now()
-        it in now..(now + duration)
-    }
-)
+): FieldValidatorBuilder<T, Instant> =
+    constraintForExtension(
+        hint = message ?: "Must be within the next $duration",
+        code = ValidatorCode.OUT_OF_RANGE,
+        predicate = {
+            val now = Clock.System.now()
+            it in now..(now + duration)
+        }
+    )
 
 @JvmName("isWithinNextNullable")
 public fun <T : Any> FieldValidatorBuilder<T, Instant?>.isWithinNext(
     duration: Duration,
     message: String? = null
 ): FieldValidatorBuilder<T, Instant?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be within the next $duration",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = {
-            if (it == null) return@constraintExtension true
+            if (it == null) return@constraintForExtension true
             val now = Clock.System.now()
             it in now..(now + duration)
         }
@@ -534,7 +538,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant>.isWithinPast(
     duration: Duration,
     message: String? = null
 ): FieldValidatorBuilder<T, Instant> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be within the past $duration",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = {
@@ -548,11 +552,11 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant?>.isWithinPast(
     duration: Duration,
     message: String? = null
 ): FieldValidatorBuilder<T, Instant?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Must be within the past $duration",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = {
-            if (it == null) return@constraintExtension true
+            if (it == null) return@constraintForExtension true
             val now = Clock.System.now()
             it in (now - duration)..now
         }
@@ -561,7 +565,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Instant?>.isWithinPast(
 public fun <T : Any> FieldValidatorBuilder<T, Duration>.isPositive(
     message: String? = null
 ): FieldValidatorBuilder<T, Duration> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Duration must be positive",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it.isPositive() }
@@ -571,7 +575,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Duration>.isPositive(
 public fun <T : Any> FieldValidatorBuilder<T, Duration?>.isPositive(
     message: String? = null
 ): FieldValidatorBuilder<T, Duration?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Duration must be positive",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it.isPositive() }
@@ -580,7 +584,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Duration?>.isPositive(
 public fun <T : Any> FieldValidatorBuilder<T, Duration>.isNegative(
     message: String? = null
 ): FieldValidatorBuilder<T, Duration> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Duration must be negative",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it.isNegative() }
@@ -590,7 +594,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Duration>.isNegative(
 public fun <T : Any> FieldValidatorBuilder<T, Duration?>.isNegative(
     message: String? = null
 ): FieldValidatorBuilder<T, Duration?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Duration must be negative",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it.isNegative() }
@@ -600,7 +604,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Duration>.isAtLeast(
     minimum: Duration,
     message: String? = null
 ): FieldValidatorBuilder<T, Duration> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Duration must be at least $minimum",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it >= minimum }
@@ -611,7 +615,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Duration?>.isAtLeast(
     minimum: Duration,
     message: String? = null
 ): FieldValidatorBuilder<T, Duration?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Duration must be at least $minimum",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it >= minimum }
@@ -621,7 +625,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Duration>.isAtMost(
     maximum: Duration,
     message: String? = null
 ): FieldValidatorBuilder<T, Duration> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Duration must be at most $maximum",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it <= maximum }
@@ -632,7 +636,7 @@ public fun <T : Any> FieldValidatorBuilder<T, Duration?>.isAtMost(
     maximum: Duration,
     message: String? = null
 ): FieldValidatorBuilder<T, Duration?> =
-    constraintExtension(
+    constraintForExtension(
         hint = message ?: "Duration must be at most $maximum",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it <= maximum }
@@ -642,23 +646,21 @@ public fun <T : Any> FieldValidatorBuilder<T, Duration>.isBetween(
     minimum: Duration,
     maximum: Duration,
     message: String? = null
-): FieldValidatorBuilder<T, Duration> {
-    return constraintExtension(
+): FieldValidatorBuilder<T, Duration> =
+    constraintForExtension(
         hint = message ?: "Duration must be between $minimum and $maximum",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it in minimum..maximum }
     )
-}
 
 @JvmName("isBetweenDurationNullable")
 public fun <T : Any> FieldValidatorBuilder<T, Duration?>.isBetween(
     minimum: Duration,
     maximum: Duration,
     message: String? = null
-): FieldValidatorBuilder<T, Duration?> {
-    return constraintExtension(
+): FieldValidatorBuilder<T, Duration?> =
+    constraintForExtension(
         hint = message ?: "Duration must be between $minimum and $maximum",
         code = ValidatorCode.OUT_OF_RANGE,
         predicate = { it == null || it in minimum..maximum }
     )
-}

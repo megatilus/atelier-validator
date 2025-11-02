@@ -11,13 +11,13 @@ A modern, type-safe validation library for **Kotlin Multiplatform** that makes d
 
 ---
 
-## Philosophy
+## Why Atelier Validator
 
-**Type Safety First** — Rely on Kotlin’s type system to catch misconfigurations at compile time, not at runtime.  
-**No Magic** — No reflection, no code generation, no hidden behavior. Just explicit, honest Kotlin.  
-**Composable** — Build complex validation logic by composing small, readable validators.  
-**Performance-Oriented** — Designed for speed and minimal allocations.  
-**Developer-Centric** — A fluent, expressive API that reads like documentation.
+- **Type Safety First** — Rely on Kotlin’s type system to catch misconfigurations at compile time, not at runtime.  
+- **No Magic** — No reflection, no code generation, no hidden behavior. Just explicit, honest Kotlin.  
+- **Composable** — Build complex validation logic by composing small, readable validators.  
+- **Performance-Oriented** — Designed for speed and minimal allocations.  
+- **Developer-Centric** — A fluent, expressive API that reads like documentation.
 
 ---
 
@@ -130,6 +130,24 @@ if (result is ValidationResult.Failure) {
 
 ---
 
+## Available Validators
+
+Atelier provides built-in validators for common types:
+
+**Strings**: `notBlank()`, `email()`, `url()`, `phoneNumber()`, `creditCard()`, `strongPassword()`, `matches()`, `alphanumeric()`, and more
+
+**Numbers**: `positive()`, `negative()`, `min()`, `max()`, `range()`, `between()`, `isGreaterThan()`, `isLessThan()`, and more
+
+**Collections**: `notEmpty()`, `size()`, `contains()`, `containsAll()`, `minSize()`, `maxSize()`, and more
+
+**Dates** (kotlinx-datetime): `isBefore()`, `isAfter()`, `isBetween()`, `isToday()`, and more
+
+> 📚 **Full documentation website coming soon!**  
+> For now, explore all available validators through IDE autocomplete or browse the [source code](https://github.com/megatilus/atelier-validator/tree/main/validator-core/src/commonMain/kotlin/dev/megatilus/atelier/validators).  
+> For **validator-kotlinx-datetime**, see the [source code](https://github.com/megatilus/atelier-validator/blob/main/validator-kotlinx-datetime/src/commonMain/kotlin/dev/megatilus/atelier/validator/KotlinxDatetimeValidators.kt).
+
+---
+
 ## Custom Validators
 
 Define custom validators effortlessly:
@@ -137,14 +155,15 @@ Define custom validators effortlessly:
 ```kotlin
 fun <T : Any> FieldValidatorBuilder<T, String>.username(
     message: String? = null
-): FieldValidatorBuilder<T, String> = constraintExtension(
-    hint = message ?: "Invalid username format",
-    code = ValidatorCode.INVALID_FORMAT,
-    predicate = { 
-        it.length in 3..20 && 
-            it.all { c -> c.isLetterOrDigit() || c == '_' || c == '-' }
-    }
-)
+): FieldValidatorBuilder<T, String> = 
+    constraintForExtension(
+        hint = message ?: "Invalid username format",
+        code = ValidatorCode.INVALID_FORMAT,
+        predicate = { 
+            it.length in 3..20 && 
+                it.all { c -> c.isLetterOrDigit() || c == '_' || c == '-' }
+        }
+    )
 
 // Usage
 val validator = atelierValidator<User> {

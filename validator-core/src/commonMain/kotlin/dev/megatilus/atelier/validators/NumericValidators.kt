@@ -6,11 +6,10 @@
 package dev.megatilus.atelier.validators
 
 import dev.megatilus.atelier.builders.FieldValidatorBuilder
-import dev.megatilus.atelier.results.ValidationErrorDetail
 import dev.megatilus.atelier.results.ValidatorCode
 import kotlin.jvm.JvmName
 
-public fun <T : Any, R> FieldValidatorBuilder<T, R>.isGreaterThanTo(
+public fun <T : Any, R> FieldValidatorBuilder<T, R>.isGreaterThan(
     value: R,
     message: String? = null
 ): FieldValidatorBuilder<T, R> where R : Comparable<R>, R : Number {
@@ -22,7 +21,7 @@ public fun <T : Any, R> FieldValidatorBuilder<T, R>.isGreaterThanTo(
 }
 
 @JvmName("isGreaterThanNullable")
-public fun <T : Any, R> FieldValidatorBuilder<T, R?>.isGreaterThanTo(
+public fun <T : Any, R> FieldValidatorBuilder<T, R?>.isGreaterThan(
     value: R,
     message: String? = null
 ): FieldValidatorBuilder<T, R?> where R : Comparable<R>, R : Number {
