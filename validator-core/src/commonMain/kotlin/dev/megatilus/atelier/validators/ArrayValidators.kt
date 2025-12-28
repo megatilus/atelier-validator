@@ -14,7 +14,7 @@ public fun <T : Any, R> FieldValidatorBuilder<T, Array<R>>.notEmpty(
 ): FieldValidatorBuilder<T, Array<R>> {
     return constraint(
         hint = message ?: "Array must not be empty",
-        code = ValidatorCode.NOT_EMPTY,
+        code = ValidatorCode.REQUIRED,
         predicate = { it.isNotEmpty() }
     )
 }
@@ -95,8 +95,8 @@ public fun <T : Any, R> FieldValidatorBuilder<T, Array<R>?>.notEmpty(
 ): FieldValidatorBuilder<T, Array<R>?> {
     return constraint(
         hint = message ?: "Array must not be empty",
-        code = ValidatorCode.NOT_EMPTY,
-        predicate = { it != null && it.isNotEmpty() }
+        code = ValidatorCode.REQUIRED,
+        predicate = { !it.isNullOrEmpty() }
     )
 }
 

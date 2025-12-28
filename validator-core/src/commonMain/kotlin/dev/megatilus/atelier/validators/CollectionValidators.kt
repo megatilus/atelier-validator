@@ -14,7 +14,7 @@ public fun <T : Any, R> FieldValidatorBuilder<T, Collection<R>>.notEmpty(
 ): FieldValidatorBuilder<T, Collection<R>> {
     return constraint(
         hint = message ?: "Collection must not be empty",
-        code = ValidatorCode.NOT_EMPTY,
+        code = ValidatorCode.REQUIRED,
         predicate = { it.isNotEmpty() }
     )
 }
@@ -39,8 +39,11 @@ public fun <T : Any, R> FieldValidatorBuilder<T, Collection<R>>.size(
             ?: when {
                 min != null && max != null ->
                     "Collection size must be between $min and $max"
+
                 min != null -> "Collection must contain at least $min items"
+
                 max != null -> "Collection must contain at most $max items"
+
                 else -> "Invalid size constraint"
             }
 
@@ -129,8 +132,8 @@ public fun <T : Any, R> FieldValidatorBuilder<T, Collection<R>?>.notEmpty(
 ): FieldValidatorBuilder<T, Collection<R>?> {
     return constraint(
         hint = message ?: "Must not be empty",
-        code = ValidatorCode.NOT_EMPTY,
-        predicate = { it != null && it.isNotEmpty() }
+        code = ValidatorCode.REQUIRED,
+        predicate = { !it.isNullOrEmpty() }
     )
 }
 

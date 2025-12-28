@@ -95,11 +95,11 @@ public final class dev/megatilus/atelier/results/ValidatorCode : java/lang/Enum 
 	public static final field INVALID_EMAIL Ldev/megatilus/atelier/results/ValidatorCode;
 	public static final field INVALID_FORMAT Ldev/megatilus/atelier/results/ValidatorCode;
 	public static final field INVALID_VALUE Ldev/megatilus/atelier/results/ValidatorCode;
-	public static final field NOT_BLANK Ldev/megatilus/atelier/results/ValidatorCode;
-	public static final field NOT_EMPTY Ldev/megatilus/atelier/results/ValidatorCode;
-	public static final field NOT_NULL Ldev/megatilus/atelier/results/ValidatorCode;
-	public static final field NULL_VALUE Ldev/megatilus/atelier/results/ValidatorCode;
+	public static final field MAX Ldev/megatilus/atelier/results/ValidatorCode;
+	public static final field MIN Ldev/megatilus/atelier/results/ValidatorCode;
 	public static final field OUT_OF_RANGE Ldev/megatilus/atelier/results/ValidatorCode;
+	public static final field PATTERN Ldev/megatilus/atelier/results/ValidatorCode;
+	public static final field REQUIRED Ldev/megatilus/atelier/results/ValidatorCode;
 	public static final field TOO_LONG Ldev/megatilus/atelier/results/ValidatorCode;
 	public static final field TOO_SHORT Ldev/megatilus/atelier/results/ValidatorCode;
 	public static final field WEAK_PASSWORD Ldev/megatilus/atelier/results/ValidatorCode;

@@ -26,19 +26,19 @@ class NullableValidatorsTest {
     @Test
     fun `nullable string notBlank should pass for non-null non-blank`() {
         val data = StringData("hello")
-        assertTrue(data.value != null && data.value.isNotBlank())
+        assertTrue(!data.value.isNullOrBlank())
     }
 
     @Test
     fun `nullable string notBlank should fail for null`() {
         val data = StringData(null)
-        assertFalse(data.value != null && data.value.isNotBlank())
+        assertFalse(!data.value.isNullOrBlank())
     }
 
     @Test
     fun `nullable string notBlank should fail for blank`() {
         val data = StringData("   ")
-        assertFalse(data.value != null && data.value.isNotBlank())
+        assertFalse(!data.value.isNullOrBlank())
     }
 
     @Test
@@ -51,19 +51,19 @@ class NullableValidatorsTest {
     @Test
     fun `nullable array notEmpty should fail for null`() {
         val data = ArrayData(null)
-        assertFalse(data.items != null && data.items.isNotEmpty())
+        assertFalse(!data.items.isNullOrEmpty())
     }
 
     @Test
     fun `nullable array notEmpty should fail for empty`() {
         val data = ArrayData(arrayOf())
-        assertFalse(data.items != null && data.items.isNotEmpty())
+        assertFalse(!data.items.isNullOrEmpty())
     }
 
     @Test
     fun `nullable array notEmpty should pass for non-empty`() {
         val data = ArrayData(arrayOf("a", "b"))
-        assertTrue(data.items != null && data.items.isNotEmpty())
+        assertTrue(!data.items.isNullOrEmpty())
     }
 
     @Test

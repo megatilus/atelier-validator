@@ -31,7 +31,7 @@ class ValidatorBuilderTest {
         // Add a simple validation
         fieldBuilder.constraint(
             hint = "Must not be blank",
-            code = ValidatorCode.NOT_BLANK,
+            code = ValidatorCode.REQUIRED,
             predicate = { it.isNotBlank() }
         )
 
@@ -52,7 +52,7 @@ class ValidatorBuilderTest {
         builder.field(TestObject::stringField)
             .constraint(
                 hint = "Must not be blank",
-                code = ValidatorCode.NOT_BLANK,
+                code = ValidatorCode.REQUIRED,
                 predicate = { it.isNotBlank() }
             )
 
@@ -84,7 +84,7 @@ class ValidatorBuilderTest {
         val fieldBuilder = builder.field(TestObject::stringField)
         fieldBuilder.constraint(
             hint = "Initial validation",
-            code = ValidatorCode.NOT_BLANK,
+            code = ValidatorCode.REQUIRED,
             predicate = { it.isNotBlank() }
         )
 
@@ -219,7 +219,7 @@ class ValidatorBuilderTest {
         builder.field(TestObject::stringField)
             .constraint(
                 hint = "String validation failed",
-                code = ValidatorCode.NOT_BLANK,
+                code = ValidatorCode.REQUIRED,
                 predicate = { false }
             )
 
@@ -282,7 +282,7 @@ class ValidatorBuilderTest {
                 field(RegistrationForm::email)
                     .constraint(
                         hint = "Email must not be blank",
-                        code = ValidatorCode.NOT_BLANK,
+                        code = ValidatorCode.REQUIRED,
                         predicate = { it.isNotBlank() }
                     )
                 field(RegistrationForm::confirmEmail)
@@ -295,7 +295,7 @@ class ValidatorBuilderTest {
         assertTrue(result.isFailure)
 
         val failure = result as ValidationResult.Failure
-        assertEquals(ValidatorCode.NOT_BLANK, failure.errors.first().code)
+        assertEquals(ValidatorCode.REQUIRED, failure.errors.first().code)
 
         // Object that passes field validation but fails isEqualTo validation
         val mismatchObject = RegistrationForm("test@example.com", "different@example.com")
@@ -314,7 +314,7 @@ class ValidatorBuilderTest {
                 field(TestObject::stringField)
                     .constraint(
                         hint = "String must not be blank",
-                        code = ValidatorCode.NOT_BLANK,
+                        code = ValidatorCode.REQUIRED,
                         predicate = { it.isNotBlank() }
                     )
             }

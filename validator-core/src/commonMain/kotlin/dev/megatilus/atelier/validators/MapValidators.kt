@@ -14,7 +14,7 @@ public fun <T : Any, K, V> FieldValidatorBuilder<T, Map<K, V>>.notEmpty(
 ): FieldValidatorBuilder<T, Map<K, V>> {
     return constraint(
         hint = message ?: "Map must not be empty",
-        code = ValidatorCode.NOT_EMPTY,
+        code = ValidatorCode.REQUIRED,
         predicate = { it.isNotEmpty() }
     )
 }
@@ -117,8 +117,8 @@ public fun <T : Any, K, V> FieldValidatorBuilder<T, Map<K, V>?>.notEmpty(
 ): FieldValidatorBuilder<T, Map<K, V>?> {
     return constraint(
         hint = message ?: "Map must not be empty",
-        code = ValidatorCode.NOT_EMPTY,
-        predicate = { it != null && it.isNotEmpty() }
+        code = ValidatorCode.REQUIRED,
+        predicate = { !it.isNullOrEmpty() }
     )
 }
 

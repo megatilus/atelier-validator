@@ -47,7 +47,7 @@ class AtelierValidatorTest {
         val failure = result as ValidationResult.Failure
         assertEquals(1, failure.errorCount)
         assertEquals("value", failure.errors.first().fieldName)
-        assertEquals(ValidatorCode.NOT_BLANK, failure.errors.first().code)
+        assertEquals(ValidatorCode.REQUIRED, failure.errors.first().code)
     }
 
     @Test

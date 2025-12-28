@@ -94,7 +94,7 @@ public fun <T : Any> FieldValidatorBuilder<T, String?>.isValidIsoDate(
     constraintForExtension(
         hint = message ?: "Must be a valid ISO date (YYYY-MM-DD)",
         code = ValidatorCode.INVALID_FORMAT,
-        predicate = { it == null || it.isBlank() || parseIsoDate(it) != null }
+        predicate = { it.isNullOrBlank() || parseIsoDate(it) != null }
     )
 
 public fun <T : Any> FieldValidatorBuilder<T, String>.isValidIsoDateTime(
@@ -113,7 +113,7 @@ public fun <T : Any> FieldValidatorBuilder<T, String?>.isValidIsoDateTime(
     constraintForExtension(
         hint = message ?: "Must be a valid ISO datetime (YYYY-MM-DDTHH:MM:SS)",
         code = ValidatorCode.INVALID_FORMAT,
-        predicate = { it == null || it.isBlank() || parseIsoDateTime(it) != null }
+        predicate = { it.isNullOrBlank() || parseIsoDateTime(it) != null }
     )
 
 public fun <T : Any> FieldValidatorBuilder<T, String>.isValidIsoInstant(
@@ -132,7 +132,7 @@ public fun <T : Any> FieldValidatorBuilder<T, String?>.isValidIsoInstant(
     constraintForExtension(
         hint = message ?: "Must be a valid ISO instant (YYYY-MM-DDTHH:MM:SSZ)",
         code = ValidatorCode.INVALID_FORMAT,
-        predicate = { it == null || it.isBlank() || parseIsoInstant(it) != null }
+        predicate = { it.isNullOrBlank() || parseIsoInstant(it) != null }
     )
 
 public fun <T : Any> FieldValidatorBuilder<T, LocalDate>.isBefore(

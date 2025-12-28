@@ -7,17 +7,17 @@ package dev.megatilus.atelier.results
 
 /** Semantic error codes for validation failures. */
 public enum class ValidatorCode {
-    NOT_NULL,
-    NOT_BLANK,
-    NOT_EMPTY,
+    REQUIRED,
+    MIN,
+    MAX,
+    OUT_OF_RANGE,
     TOO_SHORT,
     TOO_LONG,
-    OUT_OF_RANGE,
     INVALID_EMAIL,
     INVALID_FORMAT,
+    PATTERN,
     INVALID_VALUE,
-    NULL_VALUE,
+    WEAK_PASSWORD,
     CUSTOM_ERROR,
-    CROSS_FIELD_ERROR,
-    WEAK_PASSWORD
+    CROSS_FIELD_ERROR
 }

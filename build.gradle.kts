@@ -1,29 +1,28 @@
 tasks.register("testAll") {
     group = "verification"
-    description = "Exécute tous les tests de tous les modules pour toutes les plateformes"
+    description = "Run all tests from all modules for all platforms"
 
-    subprojects.forEach { p ->
-        p.tasks.matching { it.name.endsWith("Test") }.forEach { t ->
-            dependsOn(t)
+    dependsOn(
+        subprojects.flatMap { project ->
+            project.tasks.matching { it.name.endsWith("Test") }
         }
-    }
+    )
 }
 
 tasks.register("compileAllTests") {
     group = "verification"
-    description = "Compile tous les tests de tous les modules pour toutes les plateformes"
+    description = "Compile all tests from all modules for all platforms"
 
-    subprojects.forEach { p ->
-        p.tasks.matching { it.name.startsWith("compileTestKotlin") }.forEach { t ->
-            dependsOn(t)
+    dependsOn(
+        subprojects.flatMap { project ->
+            project.tasks.matching { it.name.startsWith("compileTestKotlin") }
         }
-    }
+    )
 }
 
 tasks.register("checkBeforePublish") {
     group = "verification"
-    description = "Compile et exécute tous les tests avant publication"
+    description = "Compile and run all tests before publishing"
 
-    dependsOn("compileAllTests")
-    finalizedBy("testAll")
+    dependsOn("compileAllTests", "testAll")
 }

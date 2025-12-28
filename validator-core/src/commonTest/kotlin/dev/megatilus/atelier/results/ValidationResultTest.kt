@@ -27,7 +27,7 @@ class ValidationResultTest {
             ValidationErrorDetail(
                 fieldName = "testField",
                 message = "Test error message",
-                code = ValidatorCode.NOT_BLANK,
+                code = ValidatorCode.REQUIRED,
                 actualValue = "actualValue"
             )
         val result = ValidationResult.Failure(error)
@@ -40,7 +40,7 @@ class ValidationResultTest {
 
     @Test
     fun `ValidationResult Failure with multiple errors should handle correctly`() {
-        val error1 = ValidationErrorDetail("field1", "Error 1", ValidatorCode.NOT_BLANK, "value1")
+        val error1 = ValidationErrorDetail("field1", "Error 1", ValidatorCode.REQUIRED, "value1")
         val error2 = ValidationErrorDetail("field2", "Error 2", ValidatorCode.TOO_SHORT, "value2")
         val error3 =
             ValidationErrorDetail("field1", "Error 3", ValidatorCode.INVALID_EMAIL, "value3")
@@ -72,7 +72,7 @@ class ValidationResultTest {
 
     @Test
     fun `ValidationResult Failure firstErrorFor should return correct error`() {
-        val error1 = ValidationErrorDetail("field1", "Error 1", ValidatorCode.NOT_BLANK, "value1")
+        val error1 = ValidationErrorDetail("field1", "Error 1", ValidatorCode.REQUIRED, "value1")
         val error2 = ValidationErrorDetail("field2", "Error 2", ValidatorCode.TOO_SHORT, "value2")
         val error3 =
             ValidationErrorDetail("field1", "Error 3", ValidatorCode.INVALID_EMAIL, "value3")
@@ -98,7 +98,7 @@ class ValidationResultTest {
             ValidationErrorDetail(
                 fieldName = "username",
                 message = "Username cannot be blank",
-                code = ValidatorCode.NOT_BLANK,
+                code = ValidatorCode.REQUIRED,
                 actualValue = ""
             )
 
@@ -159,7 +159,7 @@ class ValidationResultTest {
 
     @Test
     fun `ValidationResult Failure errorsByField should handle duplicate field names correctly`() {
-        val error1 = ValidationErrorDetail("field1", "Error 1", ValidatorCode.NOT_BLANK, "")
+        val error1 = ValidationErrorDetail("field1", "Error 1", ValidatorCode.REQUIRED, "")
         val error2 = ValidationErrorDetail("field1", "Error 2", ValidatorCode.TOO_SHORT, "ab")
         val error3 = ValidationErrorDetail("field1", "Error 3", ValidatorCode.INVALID_FORMAT, "123")
 

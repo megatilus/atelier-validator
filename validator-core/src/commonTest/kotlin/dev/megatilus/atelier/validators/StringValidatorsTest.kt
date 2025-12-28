@@ -14,11 +14,9 @@ import kotlin.test.assertTrue
 class StringValidatorsTest {
 
     data class TestData(val value: String)
-    data class TestDataNullable(val value: String?)
 
     @Test
     fun `notBlank should pass for non-blank strings`() {
-        // TODO: Implémenter avec ton AtelierValidator
         val data = TestData("hello")
         assertTrue(data.value.isNotBlank())
     }

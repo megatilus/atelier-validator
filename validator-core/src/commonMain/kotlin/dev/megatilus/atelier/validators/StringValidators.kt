@@ -29,7 +29,7 @@ public fun <T : Any> FieldValidatorBuilder<T, String>.notBlank(
 ): FieldValidatorBuilder<T, String> {
     return constraint(
         hint = message ?: "Cannot be blank",
-        code = ValidatorCode.NOT_BLANK,
+        code = ValidatorCode.REQUIRED,
         predicate = { it.isNotBlank() }
     )
 }
@@ -40,8 +40,8 @@ public fun <T : Any> FieldValidatorBuilder<T, String?>.notBlank(
 ): FieldValidatorBuilder<T, String?> {
     return constraint(
         hint = message ?: "Cannot be blank",
-        code = ValidatorCode.NOT_BLANK,
-        predicate = { it != null && it.isNotBlank() }
+        code = ValidatorCode.REQUIRED,
+        predicate = { !it.isNullOrBlank() }
     )
 }
 
@@ -50,7 +50,7 @@ public fun <T : Any> FieldValidatorBuilder<T, String>.notEmpty(
 ): FieldValidatorBuilder<T, String> {
     return constraint(
         hint = message ?: "Cannot be empty",
-        code = ValidatorCode.NOT_EMPTY,
+        code = ValidatorCode.REQUIRED,
         predicate = { it.isNotEmpty() }
     )
 }
@@ -61,8 +61,8 @@ public fun <T : Any> FieldValidatorBuilder<T, String?>.notEmpty(
 ): FieldValidatorBuilder<T, String?> {
     return constraint(
         hint = message ?: "Cannot be empty",
-        code = ValidatorCode.NOT_EMPTY,
-        predicate = { it != null && it.isNotEmpty() }
+        code = ValidatorCode.REQUIRED,
+        predicate = { !it.isNullOrEmpty() }
     )
 }
 
@@ -328,7 +328,7 @@ public fun <T : Any> FieldValidatorBuilder<T, String?>.email(
     return constraint(
         hint = message ?: "Must be a valid email address",
         code = ValidatorCode.INVALID_EMAIL,
-        predicate = { it == null || it.isBlank() || EMAIL_REGEX.matches(it) }
+        predicate = { it.isNullOrBlank() || EMAIL_REGEX.matches(it) }
     )
 }
 
@@ -349,7 +349,7 @@ public fun <T : Any> FieldValidatorBuilder<T, String?>.url(
     return constraint(
         hint = message ?: "Must be a valid URL",
         code = ValidatorCode.INVALID_FORMAT,
-        predicate = { it == null || it.isBlank() || URL_REGEX.matches(it) }
+        predicate = { it.isNullOrBlank() || URL_REGEX.matches(it) }
     )
 }
 
@@ -374,7 +374,7 @@ public fun <T : Any> FieldValidatorBuilder<T, String?>.phoneNumber(
         hint = message ?: "Must be a valid phone number",
         code = ValidatorCode.INVALID_FORMAT,
         predicate = {
-            it == null || it.isBlank() || run {
+            it.isNullOrBlank() || run {
                 val cleaned = it.replace(Regex("[\\s()-]"), "")
                 PHONE_REGEX.matches(cleaned)
             }
@@ -403,7 +403,7 @@ public fun <T : Any> FieldValidatorBuilder<T, String?>.creditCard(
         hint = message ?: "Must be a valid credit card number",
         code = ValidatorCode.INVALID_FORMAT,
         predicate = {
-            it == null || it.isBlank() || run {
+            it.isNullOrBlank() || run {
                 val cleaned = it.replace(Regex("[\\s-]"), "")
                 cleaned.length in 13..19 && isValidLuhn(cleaned)
             }
