@@ -12,23 +12,56 @@ import kotlin.reflect.KClass
 /**
  * Configuration for the Atelier Validator plugin.
  *
- * Allows registration of validators and customization of error responses.
+ * This class allows registration of validators for different types and
+ * customization of validation behavior and error responses.
+ *
+ * Example:
+ * ```kotlin
+ * install(AtelierValidator) {
+ *     // Register validators
+ *     register(userValidator)
+ *     register(productValidator)
+ *
+ *     // Customize error handling
+ *     errorStatusCode = HttpStatusCode.UnprocessableEntity
+ *     useAutomaticValidation = true
+ *
+ *     // Custom error response format
+ *     errorResponseBuilder = { failure ->
+ *         CustomErrorResponse(
+ *             errors = failure.errors.map { it.message }
+ *         )
+ *     }
+ * }
+ * ```
  */
 public class AtelierValidatorConfig {
     /**
      * Map of registered validators by class type.
+     *
+     * Each validator is stored with its corresponding KClass as the key,
+     * allowing type-safe retrieval during validation.
      */
     public val validators: MutableMap<KClass<*>, AtelierValidatorContract<Any>> = mutableMapOf()
 
     /**
      * HTTP status code to use for validation error responses.
-     * Defaults to 400 Bad Request.
+     *
+     * This status code is used by default when sending validation error responses.
+     * Individual endpoints can override this by providing a custom status code.
+     *
+     * Default: 400 Bad Request
      */
     public var errorStatusCode: HttpStatusCode = HttpStatusCode.BadRequest
 
     /**
-     * If true, integrates automatically with Ktor's RequestValidation plugin.
-     * If false, validation must be done manually via receiveAndValidate().
+     * Determines whether to integrate automatically with Ktor's RequestValidation plugin.
+     *
+     * When true, validation occurs automatically before route handlers are invoked.
+     * When false, validation must be performed manually using [receiveAndValidate].
+     *
+     * Automatic validation is recommended for most use cases as it provides
+     * consistent validation behavior across all endpoints.
      *
      * Default: true (automatic validation recommended)
      */
@@ -37,8 +70,26 @@ public class AtelierValidatorConfig {
     /**
      * Builder function to customize validation error responses.
      *
-     * By default, returns [AtelierValidationErrorResponse].
-     * Override this to provide custom error formats.
+     * This function is called when validation fails to create the error response
+     * that will be sent to the client. Override this to provide custom error
+     * formats that match your API's response structure.
+     *
+     * By default, returns [AtelierValidationErrorResponse] which provides a
+     * standard error format with detailed field-level errors.
+     *
+     * Example:
+     * ```kotlin
+     * errorResponseBuilder = { failure ->
+     *     CustomApiError(
+     *         status = "error",
+     *         code = 422,
+     *         message = "Validation failed",
+     *         details = failure.errors.map {
+     *             ErrorDetail(it.fieldName, it.message)
+     *         }
+     *     )
+     * }
+     * ```
      */
     public var errorResponseBuilder: (ValidationResult.Failure) -> Any = { failure ->
         AtelierValidationErrorResponse.from(failure)
@@ -47,8 +98,20 @@ public class AtelierValidatorConfig {
     /**
      * Registers a validator for a specific type.
      *
+     * This function associates a validator with a data type, enabling automatic
+     * or manual validation of that type throughout the application.
+     *
+     * The validator is wrapped to handle type checking and provide clear error
+     * messages if the wrong type is passed.
+     *
      * Example:
      * ```kotlin
+     * val userValidator = atelierValidator<User> {
+     *     User::name { notBlank(); minLength(2) }
+     *     User::email { email() }
+     *     User::age { min(18) }
+     * }
+     *
      * install(AtelierValidator) {
      *     register(userValidator)
      *     register(productValidator)
@@ -57,6 +120,7 @@ public class AtelierValidatorConfig {
      *
      * @param T The type to validate
      * @param validator The validator instance for this type
+     * @throws IllegalArgumentException if an object of incorrect type is validated
      */
     public inline fun <reified T : Any> register(validator: AtelierValidatorContract<T>) {
         val kClass = T::class
@@ -67,7 +131,6 @@ public class AtelierValidatorConfig {
                         "Expected instance of ${kClass.simpleName} but got ${obj::class.simpleName}"
                     )
                 }
-
                 return validator.validate(obj as T)
             }
 
@@ -77,7 +140,6 @@ public class AtelierValidatorConfig {
                         "Expected instance of ${kClass.simpleName} but got ${obj::class.simpleName}"
                     )
                 }
-
                 return validator.validateFirst(obj as T)
             }
         }
