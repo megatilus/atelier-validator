@@ -14,10 +14,9 @@ import io.ktor.server.response.*
 /**
  * Receives and validates a request body in one call.
  *
- * This is the recommended approach for manual validation when automatic
- * validation is disabled. If validation fails, this function automatically
- * responds with an error using the configured error format and returns null.
- * If validation succeeds, it returns the validated object.
+ * This is the recommended approach for manual validation. If validation fails,
+ * this function automatically responds with an error using the configured error
+ * format and returns null. If validation succeeds, it returns the validated object.
  *
  * Example:
  * ```kotlin
@@ -79,6 +78,19 @@ public suspend inline fun <reified T : Any> ApplicationCall.receiveAndValidate()
  * }
  * ```
  *
+ * You can also throw exceptions from the error handler:
+ * ```kotlin
+ * post("/users") {
+ *     val user = call.receiveAndValidate<User> { failure ->
+ *         // Throw if you want exception-based error handling
+ *         throw AtelierValidationException(failure)
+ *     } ?: return@post
+ *
+ *     userRepository.create(user)
+ *     call.respond(HttpStatusCode.Created, user)
+ * }
+ * ```
+ *
  * @param T The type of object to receive and validate
  * @param onError Custom error handler invoked when validation fails
  * @return The validated object, or null if validation failed
@@ -105,61 +117,4 @@ public suspend inline fun <reified T : Any> ApplicationCall.receiveAndValidate(
             null
         }
     }
-}
-
-/**
- * Validates multiple objects and returns valid and invalid ones separately.
- *
- * This function is useful for batch processing endpoints where some items may be
- * valid while others are not. It allows you to process valid items and report
- * errors for invalid ones in a single request.
- *
- * Example:
- * ```kotlin
- * post("/users/batch") {
- *     @Serializable
- *     data class BatchRequest(val users: List<User>)
- *
- *     val request = call.receive<BatchRequest>()
- *     val (valid, invalid) = call.validateBatch(request.users)
- *
- *     if (invalid.isNotEmpty()) {
- *         call.respond(HttpStatusCode.MultiStatus, mapOf(
- *             "message" to "Some users failed validation",
- *             "validCount" to valid.size,
- *             "invalidCount" to invalid.size,
- *             "errors" to invalid.map { (user, failure) ->
- *                 mapOf(
- *                     "user" to user.name,
- *                     "errors" to failure.errors.map { it.message }
- *                 )
- *             }
- *         ))
- *         return@post
- *     }
- *
- *     userRepository.createAll(valid)
- *     call.respond(HttpStatusCode.Created, mapOf("created" to valid.size))
- * }
- * ```
- *
- * @param T The type of objects to validate
- * @param objects List of objects to validate
- * @return Pair of (valid objects, list of invalid objects paired with their validation errors)
- */
-public inline fun <reified T : Any> ApplicationCall.validateBatch(
-    objects: List<T>
-): Pair<List<T>, List<Pair<T, ValidationResult.Failure>>> {
-    val validator = getValidator<T>() ?: return Pair(emptyList(), emptyList())
-
-    val (valid, invalidPairs) = objects
-        .map { obj -> obj to validator.validate(obj) }
-        .partition { (_, result) -> result is ValidationResult.Success }
-
-    return Pair(
-        valid.map { it.first },
-        invalidPairs.mapNotNull { (obj, result) ->
-            if (result is ValidationResult.Failure) obj to result else null
-        }
-    )
 }

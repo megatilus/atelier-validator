@@ -54,6 +54,7 @@ class AtelierValidatorConfigTest {
 
         assertEquals(HttpStatusCode.BadRequest, config.errorStatusCode)
         assertTrue(config.useAutomaticValidation)
+        assertTrue(config.validateAtStartup)
         assertTrue(config.validators.isEmpty())
     }
 
@@ -143,6 +144,19 @@ class AtelierValidatorConfigTest {
     }
 
     @Test
+    fun `validateAtStartup should be configurable`() {
+        val config = AtelierValidatorConfig()
+
+        assertTrue(config.validateAtStartup) // Default is true
+
+        config.validateAtStartup = false
+        assertFalse(config.validateAtStartup)
+
+        config.validateAtStartup = true
+        assertTrue(config.validateAtStartup)
+    }
+
+    @Test
     fun `custom errorResponseBuilder should be set`() {
         val config = AtelierValidatorConfig()
 
@@ -204,5 +218,36 @@ class AtelierValidatorConfigTest {
 
         assertTrue(result is ValidationResult.Failure)
         assertTrue(result.errorCount >= 3) // name, email, age
+    }
+
+    @Test
+    fun `validateConfiguration should throw when no validators registered and validateAtStartup is true`() {
+        val config = AtelierValidatorConfig()
+        config.validateAtStartup = true
+
+        val exception = assertFailsWith<IllegalStateException> {
+            config.validateConfiguration()
+        }
+
+        assertTrue(exception.message!!.contains("No validators registered"))
+    }
+
+    @Test
+    fun `validateConfiguration should not throw when validateAtStartup is false`() {
+        val config = AtelierValidatorConfig()
+        config.validateAtStartup = false
+
+        // Should not throw even with no validators
+        config.validateConfiguration()
+    }
+
+    @Test
+    fun `validateConfiguration should not throw when validators are registered`() {
+        val config = AtelierValidatorConfig()
+        config.validateAtStartup = true
+        config.register(userValidator)
+
+        // Should not throw
+        config.validateConfiguration()
     }
 }

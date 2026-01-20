@@ -12,6 +12,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -59,13 +60,37 @@ class AtelierValidatorPluginTest {
     }
 
     @Test
-    fun `plugin should install successfully`() = testApplication {
+    fun `plugin should install successfully with manual validation`() = testApplication {
         install(ServerContentNegotiation) {
             json()
         }
 
         install(AtelierValidatorPlugin) {
             register(userValidator)
+            useAutomaticValidation = false
+        }
+
+        routing {
+            get("/test") {
+                call.respond(HttpStatusCode.OK, "Plugin installed")
+            }
+        }
+
+        client.get("/test").apply {
+            assertEquals(HttpStatusCode.OK, status)
+            assertEquals("Plugin installed", bodyAsText())
+        }
+    }
+
+    @Test
+    fun `plugin should install successfully with automatic validation`() = testApplication {
+        install(ServerContentNegotiation) {
+            json()
+        }
+
+        install(AtelierValidatorPlugin) {
+            register(userValidator)
+            useAutomaticValidation = true
         }
 
         routing {
@@ -89,6 +114,37 @@ class AtelierValidatorPluginTest {
         install(AtelierValidatorPlugin) {
             register(userValidator)
             register(productValidator)
+        }
+
+        routing {
+            get("/test") {
+                call.respond(HttpStatusCode.OK, "OK")
+            }
+        }
+
+        client.get("/test").apply {
+            assertEquals(HttpStatusCode.OK, status)
+        }
+    }
+
+    @Test
+    fun `validateConfiguration should throw when no validators and validateAtStartup is true`() {
+        val config = AtelierValidatorConfig()
+        config.validateAtStartup = true
+        // No validators registered
+
+        val exception = assertFailsWith<IllegalStateException> {
+            config.validateConfiguration()
+        }
+
+        assertTrue(exception.message!!.contains("No validators registered"))
+    }
+
+    @Test
+    fun `plugin should not fail at startup when validateAtStartup is false`() = testApplication {
+        install(AtelierValidatorPlugin) {
+            validateAtStartup = false
+            // No validators registered
         }
 
         routing {
@@ -204,6 +260,51 @@ class AtelierValidatorPluginTest {
     }
 
     @Test
+    fun `automatic validation with pre-installed StatusPages should use existing StatusPages`() = testApplication {
+        install(ServerContentNegotiation) {
+            json()
+        }
+
+        val validatorConfig = AtelierValidatorConfig().apply {
+            register(userValidator)
+            useAutomaticValidation = true
+            errorStatusCode = HttpStatusCode.UnprocessableEntity
+        }
+
+        // Install StatusPages BEFORE AtelierValidator
+        install(StatusPages) {
+            configureValidationExceptionHandlers(validatorConfig)
+        }
+
+        install(AtelierValidatorPlugin) {
+            validators.putAll(validatorConfig.validators)
+            errorStatusCode = validatorConfig.errorStatusCode
+            useAutomaticValidation = true
+        }
+
+        routing {
+            post("/users") {
+                val user = call.receive<User>()
+                call.respond(HttpStatusCode.Created, user)
+            }
+        }
+
+        val client = createClient {
+            install(ClientContentNegotiation) {
+                json()
+            }
+        }
+
+        client.post("/users") {
+            contentType(ContentType.Application.Json)
+            setBody(User(name = "", email = "invalid", age = 15))
+        }.apply {
+            // Should use custom status code from config
+            assertEquals(HttpStatusCode.UnprocessableEntity, status)
+        }
+    }
+
+    @Test
     fun `getValidator should return validator for registered type`() = testApplication {
         install(ServerContentNegotiation) {
             json()
@@ -259,142 +360,6 @@ class AtelierValidatorPluginTest {
     }
 
     @Test
-    fun `receiveAndValidateAndThrow should throw exception on validation failure`() = testApplication {
-        install(ServerContentNegotiation) {
-            json()
-        }
-
-        install(AtelierValidatorPlugin) {
-            register(userValidator)
-            useAutomaticValidation = false
-        }
-
-        routing {
-            post("/users") {
-                try {
-                    val user = call.receiveAndValidateAndThrow<User>()
-                    call.respond(HttpStatusCode.Created, user)
-                } catch (e: AtelierValidationException) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to e.message))
-                }
-            }
-        }
-
-        val client = createClient {
-            install(ClientContentNegotiation) {
-                json()
-            }
-        }
-
-        client.post("/users") {
-            contentType(ContentType.Application.Json)
-            setBody(User(name = "", email = "invalid", age = 15))
-        }.apply {
-            assertEquals(HttpStatusCode.BadRequest, status)
-        }
-    }
-
-    @Test
-    fun `receiveAndValidateAndThrow should return object on validation success`() = testApplication {
-        install(ServerContentNegotiation) {
-            json()
-        }
-
-        install(AtelierValidatorPlugin) {
-            register(userValidator)
-            useAutomaticValidation = false
-        }
-
-        routing {
-            post("/users") {
-                try {
-                    val user = call.receiveAndValidateAndThrow<User>()
-                    call.respond(HttpStatusCode.Created, user)
-                } catch (e: AtelierValidationException) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to e.message))
-                }
-            }
-        }
-
-        val client = createClient {
-            install(ClientContentNegotiation) {
-                json()
-            }
-        }
-
-        val validUser = User(name = "John Doe", email = "john@example.com", age = 25)
-
-        client.post("/users") {
-            contentType(ContentType.Application.Json)
-            setBody(validUser)
-        }.apply {
-            assertEquals(HttpStatusCode.Created, status)
-            val response = body<User>()
-            assertEquals(validUser, response)
-        }
-    }
-
-    @Test
-    fun `receiveAndValidateAndThrow should throw IllegalStateException if no validator registered`() = testApplication {
-        install(ServerContentNegotiation) {
-            json()
-        }
-
-        install(AtelierValidatorPlugin) {
-            // No validator registered
-            useAutomaticValidation = false
-        }
-
-        routing {
-            post("/users") {
-                try {
-                    val user = call.receiveAndValidateAndThrow<User>()
-                    call.respond(HttpStatusCode.Created, user)
-                } catch (e: IllegalStateException) {
-                    call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
-                }
-            }
-        }
-
-        val client = createClient {
-            install(ClientContentNegotiation) {
-                json()
-            }
-        }
-
-        client.post("/users") {
-            contentType(ContentType.Application.Json)
-            setBody(User(name = "John", email = "john@example.com", age = 25))
-        }.apply {
-            assertEquals(HttpStatusCode.InternalServerError, status)
-        }
-    }
-
-    @Test
-    fun `AtelierValidationException hasErrorFor should detect field errors`() {
-        val invalidUser = User(name = "", email = "invalid", age = 15)
-        val result = userValidator.validate(invalidUser) as ValidationResult.Failure
-
-        val exception = AtelierValidationException(result)
-
-        assertTrue(exception.hasErrorFor("name"))
-        assertTrue(exception.hasErrorFor("email"))
-        assertTrue(exception.hasErrorFor("age"))
-        assertFalse(exception.hasErrorFor("nonexistent"))
-    }
-
-    @Test
-    fun `ValidationResult Failure hasErrorFor should detect field errors`() {
-        val invalidUser = User(name = "", email = "invalid", age = 15)
-        val result = userValidator.validate(invalidUser) as ValidationResult.Failure
-
-        assertTrue(result.hasErrorFor("name"))
-        assertTrue(result.hasErrorFor("email"))
-        assertTrue(result.hasErrorFor("age"))
-        assertFalse(result.hasErrorFor("nonexistent"))
-    }
-
-    @Test
     fun `AtelierValidationException should include error count in message`() {
         val invalidUser = User(name = "", email = "invalid", age = 15)
         val result = userValidator.validate(invalidUser) as ValidationResult.Failure
@@ -406,7 +371,7 @@ class AtelierValidatorPluginTest {
     }
 
     @Test
-    fun `plugin should work with custom error status code`() = testApplication {
+    fun `plugin should work with custom error status code in manual mode`() = testApplication {
         install(ServerContentNegotiation) {
             json()
         }
@@ -414,12 +379,12 @@ class AtelierValidatorPluginTest {
         install(AtelierValidatorPlugin) {
             register(userValidator)
             errorStatusCode = HttpStatusCode.UnprocessableEntity
-            useAutomaticValidation = true
+            useAutomaticValidation = false
         }
 
         routing {
             post("/users") {
-                val user = call.receive<User>()
+                val user = call.receiveAndValidate<User>() ?: return@post
                 call.respond(HttpStatusCode.Created, user)
             }
         }
@@ -439,7 +404,7 @@ class AtelierValidatorPluginTest {
     }
 
     @Test
-    fun `plugin should work with custom error response builder`() = testApplication {
+    fun `plugin should work with custom error response builder in manual mode`() = testApplication {
         install(ServerContentNegotiation) {
             json()
         }
@@ -552,6 +517,129 @@ class AtelierValidatorPluginTest {
         client.get("/config-check").apply {
             assertEquals(HttpStatusCode.OK, status)
             assertEquals("Config accessible", bodyAsText())
+        }
+    }
+
+    @Test
+    fun `configureValidationExceptionHandlers should handle AtelierValidationException`() = testApplication {
+        install(ServerContentNegotiation) {
+            json()
+        }
+
+        val validatorConfig = AtelierValidatorConfig().apply {
+            register(userValidator)
+            errorStatusCode = HttpStatusCode.UnprocessableEntity
+            useAutomaticValidation = false
+        }
+
+        install(StatusPages) {
+            configureValidationExceptionHandlers(validatorConfig)
+        }
+
+        install(AtelierValidatorPlugin) {
+            validators.putAll(validatorConfig.validators)
+            errorStatusCode = validatorConfig.errorStatusCode
+            useAutomaticValidation = false
+        }
+
+        routing {
+            post("/users") {
+                val user = call.receiveAndValidate<User> { failure ->
+                    throw AtelierValidationException(failure)
+                } ?: return@post
+                call.respond(HttpStatusCode.Created, user)
+            }
+        }
+
+        val client = createClient {
+            install(ClientContentNegotiation) {
+                json()
+            }
+        }
+
+        client.post("/users") {
+            contentType(ContentType.Application.Json)
+            setBody(User(name = "", email = "invalid", age = 15))
+        }.apply {
+            assertEquals(HttpStatusCode.UnprocessableEntity, status)
+        }
+    }
+
+    @Test
+    fun `validator should work with validateFirst for early termination`() = testApplication {
+        install(ServerContentNegotiation) {
+            json()
+        }
+
+        install(AtelierValidatorPlugin) {
+            register(userValidator)
+            useAutomaticValidation = false
+        }
+
+        routing {
+            post("/users") {
+                val user = call.receive<User>()
+                val validator = call.getValidator<User>()
+
+                when (val result = validator?.validateFirst(user)) {
+                    is ValidationResult.Failure -> {
+                        call.respondValidationError(result)
+                    }
+
+                    else -> {
+                        call.respond(HttpStatusCode.Created, user)
+                    }
+                }
+            }
+        }
+
+        val client = createClient {
+            install(ClientContentNegotiation) {
+                json()
+            }
+        }
+
+        client.post("/users") {
+            contentType(ContentType.Application.Json)
+            setBody(User(name = "", email = "invalid", age = 15))
+        }.apply {
+            assertEquals(HttpStatusCode.BadRequest, status)
+            val errorResponse = body<AtelierValidationErrorResponse>()
+            // validateFirst should return only 1 error
+            assertEquals(1, errorResponse.errors.size)
+        }
+    }
+
+    @Test
+    fun `manual validation mode should not auto-install StatusPages`() = testApplication {
+        install(ServerContentNegotiation) {
+            json()
+        }
+
+        install(AtelierValidatorPlugin) {
+            register(userValidator)
+            useAutomaticValidation = false
+        }
+
+        routing {
+            post("/users") {
+                val user = call.receiveAndValidate<User>() ?: return@post
+                call.respond(HttpStatusCode.Created, user)
+            }
+        }
+
+        val client = createClient {
+            install(ClientContentNegotiation) {
+                json()
+            }
+        }
+
+        // Should work fine without StatusPages in manual mode
+        client.post("/users") {
+            contentType(ContentType.Application.Json)
+            setBody(User(name = "", email = "invalid", age = 15))
+        }.apply {
+            assertEquals(HttpStatusCode.BadRequest, status)
         }
     }
 }

@@ -9,7 +9,6 @@ import dev.megatilus.atelier.results.ValidationResult
 import io.ktor.server.application.*
 import io.ktor.server.plugins.requestvalidation.*
 import io.ktor.server.plugins.statuspages.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.util.*
 import kotlinx.serialization.Serializable
@@ -20,11 +19,34 @@ import io.ktor.server.plugins.requestvalidation.ValidationResult as KtorValidati
  *
  * Provides automatic and manual validation for request bodies with customizable error responses.
  *
- * Basic usage:
+ * Basic usage (manual validation - recommended):
  * ```kotlin
  * install(AtelierValidator) {
  *     register(userValidator)
  *     register(productValidator)
+ * }
+ *
+ * post("/users") {
+ *     val user = call.receiveAndValidate<User>() ?: return@post
+ *     userRepository.create(user)
+ *     call.respond(HttpStatusCode.Created, user)
+ * }
+ * ```
+ *
+ * With automatic validation:
+ * ```kotlin
+ * val validatorConfig = AtelierValidatorConfig().apply {
+ *     register(userValidator)
+ *     useAutomaticValidation = true
+ * }
+ *
+ * install(StatusPages) {
+ *     configureValidationExceptionHandlers(validatorConfig)
+ * }
+ *
+ * install(AtelierValidator) {
+ *     validators.putAll(validatorConfig.validators)
+ *     useAutomaticValidation = true
  * }
  * ```
  *
@@ -38,18 +60,6 @@ import io.ktor.server.plugins.requestvalidation.ValidationResult as KtorValidati
  *     }
  * }
  * ```
- *
- * When StatusPages is already installed:
- * ```kotlin
- * install(StatusPages) {
- *     configureValidationExceptionHandlers(validatorConfig)
- *     // ... other exception handlers
- * }
- *
- * install(AtelierValidator) {
- *     register(userValidator)
- * }
- * ```
  */
 public val AtelierValidatorPlugin: ApplicationPlugin<AtelierValidatorConfig> =
     createApplicationPlugin(
@@ -58,110 +68,97 @@ public val AtelierValidatorPlugin: ApplicationPlugin<AtelierValidatorConfig> =
     ) {
         val config = pluginConfig
 
+        // Validate configuration at startup
+        config.validateConfiguration()
+
         application.attributes.put(AtelierValidatorConfigKey, config)
 
         onCall { call ->
             call.attributes.put(AtelierValidatorConfigKey, config)
         }
 
-        // Setup StatusPages for validation exception handling
-        setupStatusPages(application, config)
+        // Automatic validation via RequestValidation plugin (opt-in)
+        if (config.useAutomaticValidation) {
+            // Install RequestValidation for automatic validation
+            application.install(RequestValidation) {
+                config.validators.forEach { (kClass, validatorAny) ->
+                    validate(kClass) { value ->
+                        when (val result = validatorAny.validate(value)) {
+                            is ValidationResult.Success -> KtorValidationResult.Valid
 
-        // Automatic validation via RequestValidation plugin
-        application.install(RequestValidation) {
-            config.validators.forEach { (kClass, validatorAny) ->
-                validate(kClass) { value ->
-                    when (val result = validatorAny.validate(value)) {
-                        is ValidationResult.Success -> KtorValidationResult.Valid
-
-                        is ValidationResult.Failure -> {
-                            // Only return Invalid (which throws RequestValidationException)
-                            // if automatic validation is enabled in config
-                            if (config.useAutomaticValidation) {
+                            is ValidationResult.Failure -> {
                                 KtorValidationResult.Invalid(
                                     result.errors.map { "${it.fieldName}: ${it.message}" }
                                 )
-                            } else {
-                                KtorValidationResult.Valid
                             }
                         }
                     }
                 }
             }
+
+            // Auto-install StatusPages if not present (to handle RequestValidationException)
+            setupStatusPagesForAutomatic(application, config)
+        } else {
+            // Manual validation mode - just log warning about StatusPages
+            setupStatusPagesForManual(application)
         }
     }
 
 /**
- * Receives and validates a request body, throwing [AtelierValidationException] if validation fails.
- *
- * Use this when you want exception-based error handling instead of null-based handling.
- *
- * Example:
- * ```kotlin
- * post("/users") {
- *     try {
- *         val user = call.receiveAndValidateAndThrow<User>()
- *         userRepository.create(user)
- *         call.respond(HttpStatusCode.Created, user)
- *     } catch (e: AtelierValidationException) {
- *         // Custom error handling
- *         call.respond(HttpStatusCode.BadRequest, mapOf("error" to e.message))
- *     }
- * }
- * ```
- *
- * @return The validated object
- * @throws AtelierValidationException if validation fails
- * @throws IllegalStateException if no validator is registered for type T
+ * Sets up StatusPages for automatic validation mode.
+ * Auto-installs StatusPages if not present to handle RequestValidationException.
  */
-public suspend inline fun <reified T : Any> ApplicationCall.receiveAndValidateAndThrow(): T {
-    val obj = receive<T>()
-    val validator = getValidator<T>()
-        ?: throw IllegalStateException("No validator registered for ${T::class.simpleName}")
-
-    return when (val result = validator.validate(obj)) {
-        is ValidationResult.Success -> obj
-        is ValidationResult.Failure -> throw AtelierValidationException(result)
-    }
-}
-
-/**
- * Sets up StatusPages plugin to handle validation exceptions.
- *
- * Automatically installs StatusPages if not already present and configures handlers
- * for both Ktor's [RequestValidationException] and Atelier's [AtelierValidationException].
- *
- * If StatusPages is already installed, logs a warning with instructions on how to
- * manually configure validation exception handlers.
- */
-private fun setupStatusPages(
-    application: Application,
-    config: AtelierValidatorConfig
-) {
+private fun setupStatusPagesForAutomatic(application: Application, config: AtelierValidatorConfig) {
     val existingStatusPages = application.pluginOrNull(StatusPages)
 
     if (existingStatusPages != null) {
         application.log.warn(
             """
-            StatusPages plugin is already installed.
-            
-            To enable automatic validation error handling, add this to your StatusPages configuration:
-            
-            install(StatusPages) {
-                configureValidationExceptionHandlers(validatorConfig)
-                // ... your other exception handlers
-            }
-            
-            Where 'validatorConfig' is your AtelierValidatorConfig instance.
-            """.trimIndent()
+            |===============================================================================
+            | StatusPages plugin is already installed.
+            |===============================================================================
+            |
+            | To enable automatic validation error handling, add this:
+            |
+            | install(StatusPages) {
+            |     configureValidationExceptionHandlers(validatorConfig)
+            | }
+            |===============================================================================
+            """.trimMargin()
         )
         return
     }
 
-    // StatusPages not yet installed - install it with validation handlers
+    // Auto-install StatusPages with validation handlers for automatic mode
     application.install(StatusPages) {
         configureValidationExceptionHandlers(config)
     }
+
+    application.log.info("StatusPages plugin auto-installed for automatic validation mode")
+}
+
+/**
+ * Sets up StatusPages for manual validation mode.
+ * Just logs a warning - no auto-install in manual mode.
+ */
+private fun setupStatusPagesForManual(application: Application) {
+    val existingStatusPages = application.pluginOrNull(StatusPages)
+
+    if (existingStatusPages != null) {
+        // StatusPages exists, all good
+        return
+    }
+
+    application.log.debug(
+        """
+        StatusPages plugin is not installed. This is fine for manual validation mode.
+        If you want to handle AtelierValidationException globally, install StatusPages:
+        
+        install(StatusPages) {
+            configureValidationExceptionHandlers(validatorConfig)
+        }
+        """.trimIndent()
+    )
 }
 
 /**
@@ -223,33 +220,12 @@ public val AtelierValidatorConfigKey: AttributeKey<AtelierValidatorConfig> =
  * Exception thrown when validation fails.
  *
  * This exception is caught by StatusPages and converted to an appropriate error response.
- * Use [receiveAndValidateAndThrow] to trigger this exception on validation failure.
  *
  * @property validationResult The validation failure containing detailed error information
  */
 public class AtelierValidationException(
     public val validationResult: ValidationResult.Failure
-) : Exception("Validation failed with ${validationResult.errorCount} error(s)") {
-    /**
-     * Checks if this validation failure contains an error for the specified field.
-     *
-     * @param fieldName The name of the field to check
-     * @return true if the field has validation errors, false otherwise
-     */
-    public fun hasErrorFor(fieldName: String): Boolean {
-        return validationResult.errorsFor(fieldName).isNotEmpty()
-    }
-}
-
-/**
- * Extension function to check if a validation failure contains errors for a specific field.
- *
- * @param fieldName The name of the field to check
- * @return true if the field has validation errors, false otherwise
- */
-public fun ValidationResult.Failure.hasErrorFor(fieldName: String): Boolean {
-    return errorsFor(fieldName).isNotEmpty()
-}
+) : Exception("Validation failed with ${validationResult.errorCount} error(s)")
 
 /**
  * Retrieves the validator registered for type T from the application context.

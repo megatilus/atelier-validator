@@ -80,6 +80,37 @@ public data class AtelierValidationErrorResponse(
 }
 
 /**
+ * Checks if a validation failure contains an error for the specified field.
+ *
+ * This is a convenience extension that makes it easy to check for field-specific
+ * errors in custom error handlers.
+ *
+ * Example:
+ * ```kotlin
+ * post("/users") {
+ *     val user = call.receiveAndValidate<User> { failure ->
+ *         if (failure.hasErrorFor("email")) {
+ *             call.respond(HttpStatusCode.Conflict, mapOf(
+ *                 "error" to "Email validation failed"
+ *             ))
+ *         } else {
+ *             call.respondValidationError(failure)
+ *         }
+ *     } ?: return@post
+ *
+ *     userRepository.create(user)
+ *     call.respond(HttpStatusCode.Created, user)
+ * }
+ * ```
+ *
+ * @param fieldName The name of the field to check
+ * @return true if the field has validation errors, false otherwise
+ */
+public fun ValidationResult.Failure.hasErrorFor(fieldName: String): Boolean {
+    return errorsFor(fieldName).isNotEmpty()
+}
+
+/**
  * Sends a validation error response in the standard format.
  *
  * This function automatically retrieves the validator configuration from the application

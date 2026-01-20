@@ -10,7 +10,6 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.request.receive
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
@@ -135,6 +134,7 @@ class AtelierValidatorExtensionsTest {
 
         install(AtelierValidatorPlugin) {
             // No validator registered for User
+            register(productValidator) // Register a different validator to pass startup validation
         }
 
         routing {
@@ -243,7 +243,7 @@ class AtelierValidatorExtensionsTest {
     }
 
     @Test
-    fun `validateBatch should separate valid and invalid objects`() = testApplication {
+    fun `receiveAndValidate with custom handler that throws exception`() = testApplication {
         install(ServerContentNegotiation) {
             json()
         }
@@ -253,34 +253,15 @@ class AtelierValidatorExtensionsTest {
             useAutomaticValidation = false
         }
 
-        @Serializable
-        data class BatchRequest(val users: List<User>)
-
-        @Serializable
-        data class BatchResponse(
-            val validCount: Int,
-            val invalidCount: Int,
-            val errors: List<String>
-        )
-
         routing {
-            post("/users/batch") {
-                val request = call.receive<BatchRequest>()
-                val (valid, invalid) = call.validateBatch(request.users)
-
-                if (invalid.isNotEmpty()) {
-                    call.respond(
-                        HttpStatusCode.MultiStatus,
-                        BatchResponse(
-                            validCount = valid.size,
-                            invalidCount = invalid.size,
-                            errors = invalid.flatMap { (_, failure) ->
-                                failure.errors.map { it.message }
-                            }
-                        )
-                    )
-                } else {
-                    call.respond(HttpStatusCode.OK, BatchResponse(valid.size, 0, emptyList()))
+            post("/users") {
+                try {
+                    val user = call.receiveAndValidate<User> { failure ->
+                        throw AtelierValidationException(failure)
+                    } ?: return@post
+                    call.respond(HttpStatusCode.Created, user)
+                } catch (e: AtelierValidationException) {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to e.message))
                 }
             }
         }
@@ -291,201 +272,35 @@ class AtelierValidatorExtensionsTest {
             }
         }
 
-        val users = listOf(
-            User(name = "John Doe", email = "john@example.com", age = 25), // Valid
-            User(name = "", email = "invalid", age = 15), // Invalid
-            User(name = "Jane Smith", email = "jane@example.com", age = 30) // Valid
-        )
-
-        client.post("/users/batch") {
+        client.post("/users") {
             contentType(ContentType.Application.Json)
-            setBody(BatchRequest(users))
+            setBody(User(name = "", email = "invalid", age = 15))
         }.apply {
-            assertEquals(HttpStatusCode.MultiStatus, status)
-            val response = body<BatchResponse>()
-            assertEquals(2, response.validCount)
-            assertEquals(1, response.invalidCount)
-            assertTrue(response.errors.isNotEmpty())
+            assertEquals(HttpStatusCode.BadRequest, status)
         }
     }
 
     @Test
-    fun `validateBatch should return all valid when all objects are valid`() = testApplication {
+    fun `receiveAndValidate should work with different types`() = testApplication {
         install(ServerContentNegotiation) {
             json()
         }
 
         install(AtelierValidatorPlugin) {
             register(userValidator)
-            useAutomaticValidation = false
-        }
-
-        @Serializable
-        data class BatchRequest(val users: List<User>)
-
-        @Serializable
-        data class BatchResponse(val validCount: Int, val invalidCount: Int)
-
-        routing {
-            post("/users/batch") {
-                val request = call.receive<BatchRequest>()
-                val (valid, invalid) = call.validateBatch(request.users)
-
-                call.respond(
-                    HttpStatusCode.OK,
-                    BatchResponse(validCount = valid.size, invalidCount = invalid.size)
-                )
-            }
-        }
-
-        val client = createClient {
-            install(ClientContentNegotiation) {
-                json()
-            }
-        }
-
-        val users = listOf(
-            User(name = "John Doe", email = "john@example.com", age = 25),
-            User(name = "Jane Smith", email = "jane@example.com", age = 30)
-        )
-
-        client.post("/users/batch") {
-            contentType(ContentType.Application.Json)
-            setBody(BatchRequest(users))
-        }.apply {
-            assertEquals(HttpStatusCode.OK, status)
-            val response = body<BatchResponse>()
-            assertEquals(2, response.validCount)
-            assertEquals(0, response.invalidCount)
-        }
-    }
-
-    @Test
-    fun `validateBatch should return all invalid when all objects are invalid`() = testApplication {
-        install(ServerContentNegotiation) {
-            json()
-        }
-
-        install(AtelierValidatorPlugin) {
-            register(userValidator)
-            useAutomaticValidation = false
-        }
-
-        @Serializable
-        data class BatchRequest(val users: List<User>)
-
-        @Serializable
-        data class BatchResponse(val validCount: Int, val invalidCount: Int)
-
-        routing {
-            post("/users/batch") {
-                val request = call.receive<BatchRequest>()
-                val (valid, invalid) = call.validateBatch(request.users)
-
-                call.respond(
-                    HttpStatusCode.OK,
-                    BatchResponse(validCount = valid.size, invalidCount = invalid.size)
-                )
-            }
-        }
-
-        val client = createClient {
-            install(ClientContentNegotiation) {
-                json()
-            }
-        }
-
-        val users = listOf(
-            User(name = "", email = "invalid1", age = 15),
-            User(name = "", email = "invalid2", age = 10)
-        )
-
-        client.post("/users/batch") {
-            contentType(ContentType.Application.Json)
-            setBody(BatchRequest(users))
-        }.apply {
-            assertEquals(HttpStatusCode.OK, status)
-            val response = body<BatchResponse>()
-            assertEquals(0, response.validCount)
-            assertEquals(2, response.invalidCount)
-        }
-    }
-
-    @Test
-    fun `validateBatch should return empty lists when no validator registered`() = testApplication {
-        install(ServerContentNegotiation) {
-            json()
-        }
-
-        install(AtelierValidatorPlugin) {
-            // No validator registered
-        }
-
-        @Serializable
-        data class BatchRequest(val users: List<User>)
-
-        @Serializable
-        data class BatchResponse(val validCount: Int, val invalidCount: Int)
-
-        routing {
-            post("/users/batch") {
-                val request = call.receive<BatchRequest>()
-                val (valid, invalid) = call.validateBatch(request.users)
-
-                call.respond(
-                    HttpStatusCode.OK,
-                    BatchResponse(validCount = valid.size, invalidCount = invalid.size)
-                )
-            }
-        }
-
-        val client = createClient {
-            install(ClientContentNegotiation) {
-                json()
-            }
-        }
-
-        val users = listOf(
-            User(name = "John", email = "john@example.com", age = 25)
-        )
-
-        client.post("/users/batch") {
-            contentType(ContentType.Application.Json)
-            setBody(BatchRequest(users))
-        }.apply {
-            assertEquals(HttpStatusCode.OK, status)
-            val response = body<BatchResponse>()
-            assertEquals(0, response.validCount)
-            assertEquals(0, response.invalidCount)
-        }
-    }
-
-    @Test
-    fun `validateBatch should work with different types`() = testApplication {
-        install(ServerContentNegotiation) {
-            json()
-        }
-
-        install(AtelierValidatorPlugin) {
             register(productValidator)
             useAutomaticValidation = false
         }
 
-        @Serializable
-        data class BatchRequest(val products: List<Product>)
-
-        @Serializable
-        data class BatchResponse(val validCount: Int, val invalidCount: Int)
-
         routing {
-            post("/products/batch") {
-                val request = call.receive<BatchRequest>()
-                val (valid, invalid) = call.validateBatch(request.products)
+            post("/users") {
+                val user = call.receiveAndValidate<User>() ?: return@post
+                call.respond(HttpStatusCode.Created, user)
+            }
 
-                call.respond(
-                    HttpStatusCode.OK,
-                    BatchResponse(validCount = valid.size, invalidCount = invalid.size)
-                )
+            post("/products") {
+                val product = call.receiveAndValidate<Product>() ?: return@post
+                call.respond(HttpStatusCode.Created, product)
             }
         }
 
@@ -495,20 +310,69 @@ class AtelierValidatorExtensionsTest {
             }
         }
 
-        val products = listOf(
-            Product(name = "Product 1", price = 10.0), // Valid
-            Product(name = "", price = -5.0), // Invalid
-            Product(name = "Product 3", price = 20.0) // Valid
-        )
-
-        client.post("/products/batch") {
+        // Test User endpoint
+        client.post("/users") {
             contentType(ContentType.Application.Json)
-            setBody(BatchRequest(products))
+            setBody(User(name = "John Doe", email = "john@example.com", age = 25))
         }.apply {
-            assertEquals(HttpStatusCode.OK, status)
-            val response = body<BatchResponse>()
-            assertEquals(2, response.validCount)
-            assertEquals(1, response.invalidCount)
+            assertEquals(HttpStatusCode.Created, status)
+        }
+
+        // Test Product endpoint
+        client.post("/products") {
+            contentType(ContentType.Application.Json)
+            setBody(Product(name = "Test Product", price = 29.99))
+        }.apply {
+            assertEquals(HttpStatusCode.Created, status)
+        }
+
+        // Test invalid Product
+        client.post("/products") {
+            contentType(ContentType.Application.Json)
+            setBody(Product(name = "", price = -10.0))
+        }.apply {
+            assertEquals(HttpStatusCode.BadRequest, status)
+        }
+    }
+
+    @Test
+    fun `receiveAndValidate should use custom errorResponseBuilder from config`() = testApplication {
+        install(ServerContentNegotiation) {
+            json()
+        }
+
+        @Serializable
+        data class CustomGlobalError(val errorType: String, val count: Int)
+
+        install(AtelierValidatorPlugin) {
+            register(userValidator)
+            useAutomaticValidation = false
+            errorResponseBuilder = { failure ->
+                CustomGlobalError(errorType = "GLOBAL_VALIDATION_ERROR", count = failure.errorCount)
+            }
+        }
+
+        routing {
+            post("/users") {
+                val user = call.receiveAndValidate<User>() ?: return@post
+                call.respond(HttpStatusCode.Created, user)
+            }
+        }
+
+        val client = createClient {
+            install(ClientContentNegotiation) {
+                json()
+            }
+        }
+
+        client.post("/users") {
+            contentType(ContentType.Application.Json)
+            setBody(User(name = "", email = "invalid", age = 15))
+        }.apply {
+            assertEquals(HttpStatusCode.BadRequest, status)
+            val errorResponse = body<CustomGlobalError>()
+            assertEquals("GLOBAL_VALIDATION_ERROR", errorResponse.errorType)
+            assertTrue(errorResponse.count > 0)
         }
     }
 }

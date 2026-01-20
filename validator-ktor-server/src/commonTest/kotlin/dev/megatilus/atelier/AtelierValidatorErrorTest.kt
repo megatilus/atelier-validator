@@ -77,6 +77,17 @@ class AtelierValidatorErrorTest {
     }
 
     @Test
+    fun `hasErrorFor should detect field errors`() {
+        val invalidUser = User(name = "", email = "invalid", age = 15)
+        val result = userValidator.validate(invalidUser) as ValidationResult.Failure
+
+        assertTrue(result.hasErrorFor("name"))
+        assertTrue(result.hasErrorFor("email"))
+        assertTrue(result.hasErrorFor("age"))
+        assertFalse(result.hasErrorFor("nonexistent"))
+    }
+
+    @Test
     fun `respondValidationError should send error response with default status`() = testApplication {
         install(ServerContentNegotiation) {
             json()
@@ -412,6 +423,52 @@ class AtelierValidatorErrorTest {
             setBody(User(name = "", email = "invalid", age = 15))
         }.apply {
             assertEquals(HttpStatusCode.UnprocessableEntity, status)
+        }
+    }
+
+    @Test
+    fun `respondValidationError should not respond if response already committed`() = testApplication {
+        install(ServerContentNegotiation) {
+            json()
+        }
+
+        install(AtelierValidatorPlugin) {
+            register(userValidator)
+            useAutomaticValidation = false
+        }
+
+        routing {
+            post("/users") {
+                val user = call.receive<User>()
+                val validator = call.getValidator<User>()
+
+                when (val result = validator?.validate(user)) {
+                    is ValidationResult.Failure -> {
+                        // Commit response first
+                        call.respond(HttpStatusCode.Conflict, mapOf("error" to "Already handled"))
+                        // This should not throw or change response
+                        call.respondValidationError(result)
+                    }
+
+                    else -> {
+                        call.respond(HttpStatusCode.Created, user)
+                    }
+                }
+            }
+        }
+
+        val client = createClient {
+            install(ClientContentNegotiation) {
+                json()
+            }
+        }
+
+        client.post("/users") {
+            contentType(ContentType.Application.Json)
+            setBody(User(name = "", email = "invalid", age = 15))
+        }.apply {
+            // Should keep the first response
+            assertEquals(HttpStatusCode.Conflict, status)
         }
     }
 }

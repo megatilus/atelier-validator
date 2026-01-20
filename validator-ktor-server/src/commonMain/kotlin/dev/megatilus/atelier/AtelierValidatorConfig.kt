@@ -24,7 +24,6 @@ import kotlin.reflect.KClass
  *
  *     // Customize error handling
  *     errorStatusCode = HttpStatusCode.UnprocessableEntity
- *     useAutomaticValidation = true
  *
  *     // Custom error response format
  *     errorResponseBuilder = { failure ->
@@ -60,12 +59,27 @@ public class AtelierValidatorConfig {
      * When true, validation occurs automatically before route handlers are invoked.
      * When false, validation must be performed manually using [receiveAndValidate].
      *
-     * Automatic validation is recommended for most use cases as it provides
-     * consistent validation behavior across all endpoints.
+     * **Security Note**: Manual validation (false) is recommended as it makes validation
+     * explicit and visible in your code. This prevents accidental security holes from
+     * forgotten validators.
      *
-     * Default: true (automatic validation recommended)
+     * Default: true
      */
     public var useAutomaticValidation: Boolean = true
+
+    /**
+     * When true, validates at startup that all registered validators are properly configured.
+     *
+     * This performs basic sanity checks:
+     * - At least one validator is registered
+     * - Configuration is not empty
+     *
+     * Enabling this helps catch configuration errors early at startup rather than
+     * at runtime when requests arrive.
+     *
+     * Default: true (recommended for production safety)
+     */
+    public var validateAtStartup: Boolean = true
 
     /**
      * Builder function to customize validation error responses.
@@ -145,5 +159,32 @@ public class AtelierValidatorConfig {
         }
 
         validators[kClass] = wrapper
+    }
+
+    /**
+     * Validates the configuration at startup.
+     *
+     * This is called automatically by the plugin if [validateAtStartup] is true.
+     * It performs basic sanity checks to catch configuration errors early.
+     *
+     * @throws IllegalStateException if configuration is invalid
+     */
+    internal fun validateConfiguration() {
+        if (!validateAtStartup) return
+
+        if (validators.isEmpty()) {
+            throw IllegalStateException(
+                """
+                No validators registered in AtelierValidator plugin.
+
+                Did you forget to call register()? Example:
+
+                install(AtelierValidator) {
+                    register(userValidator)
+                    register(productValidator)
+                }
+                """.trimIndent()
+            )
+        }
     }
 }
