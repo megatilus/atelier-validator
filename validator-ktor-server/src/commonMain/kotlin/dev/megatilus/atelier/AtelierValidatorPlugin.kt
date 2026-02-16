@@ -19,11 +19,28 @@ import io.ktor.server.plugins.requestvalidation.ValidationResult as KtorValidati
  *
  * Provides automatic and manual validation for request bodies with customizable error responses.
  *
- * Basic usage (manual validation - recommended):
+ * **IMPORTANT: Installation Order**
+ * When using automatic validation with StatusPages, install StatusPages BEFORE AtelierValidator:
+ *
+ * ```kotlin
+ * // 1. Install StatusPages first
+ * install(StatusPages) {
+ *     configureValidationExceptionHandlers(validatorConfig)
+ * }
+ *
+ * // 2. Then install AtelierValidator
+ * install(AtelierValidator) {
+ *     register(userValidator)
+ *     useAutomaticValidation = true
+ * }
+ * ```
+ *
+ * **Manual validation (recommended for better control):**
  * ```kotlin
  * install(AtelierValidator) {
  *     register(userValidator)
  *     register(productValidator)
+ *     useAutomaticValidation = false
  * }
  *
  * post("/users") {
@@ -33,13 +50,14 @@ import io.ktor.server.plugins.requestvalidation.ValidationResult as KtorValidati
  * }
  * ```
  *
- * With automatic validation:
+ * **Automatic validation:**
  * ```kotlin
  * val validatorConfig = AtelierValidatorConfig().apply {
  *     register(userValidator)
  *     useAutomaticValidation = true
  * }
  *
+ * // StatusPages must be installed BEFORE AtelierValidator
  * install(StatusPages) {
  *     configureValidationExceptionHandlers(validatorConfig)
  * }
@@ -50,7 +68,7 @@ import io.ktor.server.plugins.requestvalidation.ValidationResult as KtorValidati
  * }
  * ```
  *
- * With custom error handling:
+ * **Custom error handling:**
  * ```kotlin
  * install(AtelierValidator) {
  *     register(userValidator)
@@ -80,6 +98,7 @@ public val AtelierValidatorPlugin: ApplicationPlugin<AtelierValidatorConfig> =
         // Automatic validation via RequestValidation plugin (opt-in)
         if (config.useAutomaticValidation) {
             // Install RequestValidation for automatic validation
+
             application.install(RequestValidation) {
                 config.validators.forEach { (kClass, validatorAny) ->
                     validate(kClass) { value ->
@@ -112,20 +131,8 @@ private fun setupStatusPagesForAutomatic(application: Application, config: Ateli
     val existingStatusPages = application.pluginOrNull(StatusPages)
 
     if (existingStatusPages != null) {
-        application.log.warn(
-            """
-            |===============================================================================
-            | StatusPages plugin is already installed.
-            |===============================================================================
-            |
-            | To enable automatic validation error handling, add this:
-            |
-            | install(StatusPages) {
-            |     configureValidationExceptionHandlers(validatorConfig)
-            | }
-            |===============================================================================
-            """.trimMargin()
-        )
+        // StatusPages already installed - assume user has configured it correctly
+        // If not configured, they'll see validation errors in production
         return
     }
 
@@ -134,7 +141,7 @@ private fun setupStatusPagesForAutomatic(application: Application, config: Ateli
         configureValidationExceptionHandlers(config)
     }
 
-    application.log.info("StatusPages plugin auto-installed for automatic validation mode")
+    application.log.info("StatusPages plugin auto-installed with validation handlers for automatic validation mode")
 }
 
 /**
@@ -142,23 +149,9 @@ private fun setupStatusPagesForAutomatic(application: Application, config: Ateli
  * Just logs a warning - no auto-install in manual mode.
  */
 private fun setupStatusPagesForManual(application: Application) {
-    val existingStatusPages = application.pluginOrNull(StatusPages)
-
-    if (existingStatusPages != null) {
-        // StatusPages exists, all good
-        return
-    }
-
-    application.log.debug(
-        """
-        StatusPages plugin is not installed. This is fine for manual validation mode.
-        If you want to handle AtelierValidationException globally, install StatusPages:
-        
-        install(StatusPages) {
-            configureValidationExceptionHandlers(validatorConfig)
-        }
-        """.trimIndent()
-    )
+    // In manual validation mode, StatusPages is optional
+    // Users can install it if they want global exception handling
+    // No need to log anything - it's their choice
 }
 
 /**
@@ -225,7 +218,10 @@ public val AtelierValidatorConfigKey: AttributeKey<AtelierValidatorConfig> =
  */
 public class AtelierValidationException(
     public val validationResult: ValidationResult.Failure
-) : Exception("Validation failed with ${validationResult.errorCount} error(s)")
+) : Exception(
+    "Validation failed: ${validationResult.errorCount} error(s) found - " +
+        validationResult.errors.joinToString(", ") { "${it.fieldName}: ${it.message}" }
+)
 
 /**
  * Retrieves the validator registered for type T from the application context.

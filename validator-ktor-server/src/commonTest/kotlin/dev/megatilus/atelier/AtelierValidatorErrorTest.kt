@@ -65,7 +65,7 @@ class AtelierValidatorErrorTest {
 
         val response = AtelierValidationErrorResponse.from(result)
 
-        assertEquals("Validation failed", response.message)
+        assertEquals("Request validation failed: 4 error(s) detected", response.message)
         assertEquals(result.errorCount, response.errors.size)
 
         response.errors.forEach { error ->
@@ -127,7 +127,7 @@ class AtelierValidatorErrorTest {
         }.apply {
             assertEquals(HttpStatusCode.BadRequest, status)
             val errorResponse = body<AtelierValidationErrorResponse>()
-            assertEquals("Validation failed", errorResponse.message)
+            assertEquals("Request validation failed: 4 error(s) detected", errorResponse.message)
             assertTrue(errorResponse.errors.isNotEmpty())
         }
     }

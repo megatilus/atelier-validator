@@ -142,7 +142,13 @@ public class AtelierValidatorConfig {
             override fun validate(obj: Any): ValidationResult {
                 if (!kClass.isInstance(obj)) {
                     throw IllegalArgumentException(
-                        "Expected instance of ${kClass.simpleName} but got ${obj::class.simpleName}"
+                        """
+                        |Type mismatch in validator:
+                        |  Expected: ${kClass.simpleName}
+                        |  Received: ${obj::class.simpleName}
+                        |
+                        |Make sure you're validating the correct object type.
+                        """.trimMargin()
                     )
                 }
                 return validator.validate(obj as T)
@@ -151,7 +157,13 @@ public class AtelierValidatorConfig {
             override fun validateFirst(obj: Any): ValidationResult {
                 if (!kClass.isInstance(obj)) {
                     throw IllegalArgumentException(
-                        "Expected instance of ${kClass.simpleName} but got ${obj::class.simpleName}"
+                        """
+                        |Type mismatch in validator:
+                        |  Expected: ${kClass.simpleName}
+                        |  Received: ${obj::class.simpleName}
+                        |
+                        |Make sure you're validating the correct object type.
+                        """.trimMargin()
                     )
                 }
                 return validator.validateFirst(obj as T)
@@ -175,15 +187,25 @@ public class AtelierValidatorConfig {
         if (validators.isEmpty()) {
             throw IllegalStateException(
                 """
-                No validators registered in AtelierValidator plugin.
-
-                Did you forget to call register()? Example:
-
-                install(AtelierValidator) {
-                    register(userValidator)
-                    register(productValidator)
-                }
-                """.trimIndent()
+                |===============================================================================
+                | AtelierValidator Configuration Error: No validators registered
+                |===============================================================================
+                |
+                | You must register at least one validator before using the plugin.
+                |
+                | Example:
+                |
+                | val userValidator = atelierValidator<User> {
+                |     User::name { notBlank(); minLength(2) }
+                |     User::email { email() }
+                | }
+                |
+                | install(AtelierValidator) {
+                |     register(userValidator)
+                |     register(productValidator)  // Add more validators as needed
+                | }
+                |===============================================================================
+                """.trimMargin()
             )
         }
     }

@@ -72,7 +72,7 @@ public data class AtelierValidationErrorResponse(
          */
         public fun from(failure: ValidationResult.Failure): AtelierValidationErrorResponse {
             return AtelierValidationErrorResponse(
-                message = "Validation failed",
+                message = "Request validation failed: ${failure.errorCount} error(s) detected",
                 errors = failure.errors.map { ValidationErrorDetailDto.from(it) }
             )
         }

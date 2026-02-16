@@ -186,7 +186,7 @@ class AtelierValidatorConfigTest {
         val response = config.errorResponseBuilder(result)
 
         assertTrue(response is AtelierValidationErrorResponse)
-        assertEquals("Validation failed", response.message)
+        assertEquals("Request validation failed: 4 error(s) detected", response.message)
         assertTrue(response.errors.isNotEmpty())
     }
 
