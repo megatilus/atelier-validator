@@ -6,13 +6,9 @@
 package dev.megatilus.atelier
 
 import dev.megatilus.atelier.validators.*
-import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlin.test.*
 
-/**
- * Tests for AtelierValidatorClientConfig (simplified version).
- */
 class AtelierValidatorClientConfigTest {
 
     @Serializable
@@ -47,16 +43,9 @@ class AtelierValidatorClientConfigTest {
     fun testDefaultConfiguration() {
         val config = AtelierValidatorClientConfig()
 
-        // Default values
-        assertFalse(config.useAutomaticValidation) // Manual by default
-        assertTrue(config.acceptedStatusCodes.isNotEmpty())
+        config.useAutomaticValidation = false
 
-        // Default accepted status codes should be 2xx
-        assertTrue(HttpStatusCode.OK in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.Created in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.Accepted in config.acceptedStatusCodes)
-        assertFalse(HttpStatusCode.BadRequest in config.acceptedStatusCodes)
-        assertFalse(HttpStatusCode.NotFound in config.acceptedStatusCodes)
+        assertFalse(config.useAutomaticValidation)
     }
 
     @Test
@@ -82,67 +71,15 @@ class AtelierValidatorClientConfigTest {
     }
 
     @Test
-    fun testAcceptStatusCodeRange() {
-        val config = AtelierValidatorClientConfig()
-
-        config.acceptStatusCodeRange(200..201)
-
-        assertTrue(HttpStatusCode.OK in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.Created in config.acceptedStatusCodes)
-        assertFalse(HttpStatusCode.Accepted in config.acceptedStatusCodes)
-        assertFalse(HttpStatusCode.NoContent in config.acceptedStatusCodes)
-    }
-
-    @Test
-    fun testAcceptStatusCodeRangeWithCustomRange() {
-        val config = AtelierValidatorClientConfig()
-
-        config.acceptStatusCodeRange(200..299)
-
-        // All 2xx should be accepted
-        assertTrue(HttpStatusCode.OK in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.Created in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.Accepted in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.NoContent in config.acceptedStatusCodes)
-    }
-
-    @Test
-    fun testAcceptSpecificStatusCodes() {
-        val config = AtelierValidatorClientConfig()
-
-        config.acceptStatusCodes(
-            HttpStatusCode.OK,
-            HttpStatusCode.Created,
-            HttpStatusCode.NoContent
-        )
-
-        assertTrue(HttpStatusCode.OK in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.Created in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.NoContent in config.acceptedStatusCodes)
-        assertFalse(HttpStatusCode.Accepted in config.acceptedStatusCodes)
-        assertFalse(HttpStatusCode.BadRequest in config.acceptedStatusCodes)
-    }
-
-    @Test
-    fun testAcceptOnlySuccessCodes() {
-        val config = AtelierValidatorClientConfig()
-
-        config.acceptStatusCodes(HttpStatusCode.OK)
-
-        assertTrue(HttpStatusCode.OK in config.acceptedStatusCodes)
-        assertFalse(HttpStatusCode.Created in config.acceptedStatusCodes)
-    }
-
-    @Test
     fun testUseAutomaticValidationFlag() {
         val config = AtelierValidatorClientConfig()
 
-        // Default is false (manual validation)
-        assertFalse(config.useAutomaticValidation)
-
-        // Can be enabled
-        config.useAutomaticValidation = true
+        // Default is true (automatic validation)
         assertTrue(config.useAutomaticValidation)
+
+        // Can be disabled
+        config.useAutomaticValidation = false
+        assertFalse(config.useAutomaticValidation)
     }
 
     @Test
@@ -166,37 +103,6 @@ class AtelierValidatorClientConfigTest {
     }
 
     @Test
-    fun testMultipleStatusCodeRanges() {
-        val config1 = AtelierValidatorClientConfig()
-        config1.acceptStatusCodeRange(200..299)
-
-        val config2 = AtelierValidatorClientConfig()
-        config2.acceptStatusCodeRange(400..499)
-
-        // config1 accepts 2xx
-        assertTrue(HttpStatusCode.OK in config1.acceptedStatusCodes)
-        assertFalse(HttpStatusCode.BadRequest in config1.acceptedStatusCodes)
-
-        // config2 accepts 4xx
-        assertFalse(HttpStatusCode.OK in config2.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.BadRequest in config2.acceptedStatusCodes)
-    }
-
-    @Test
-    fun testConfigurationChaining() {
-        val config = AtelierValidatorClientConfig().apply {
-            register(userValidator)
-            register(productValidator)
-            acceptStatusCodeRange(200..201)
-            useAutomaticValidation = false
-        }
-
-        assertEquals(2, config.validators.size)
-        assertEquals(2, config.acceptedStatusCodes.size)
-        assertFalse(config.useAutomaticValidation)
-    }
-
-    @Test
     fun testEmptyValidators() {
         val config = AtelierValidatorClientConfig()
 
@@ -204,30 +110,70 @@ class AtelierValidatorClientConfigTest {
     }
 
     @Test
-    fun testOverwriteAcceptedStatusCodes() {
+    fun testValidatorOverwrite() {
         val config = AtelierValidatorClientConfig()
 
-        // First set
-        config.acceptStatusCodes(HttpStatusCode.OK)
-        assertEquals(1, config.acceptedStatusCodes.size)
+        // First validator
+        val firstValidator = atelierValidator<User> {
+            User::name { minLength(5) }
+        }
 
-        // Overwrite
-        config.acceptStatusCodes(HttpStatusCode.Created, HttpStatusCode.Accepted)
-        assertEquals(2, config.acceptedStatusCodes.size)
-        assertFalse(HttpStatusCode.OK in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.Created in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.Accepted in config.acceptedStatusCodes)
+        // Second validator for same type
+        val secondValidator = atelierValidator<User> {
+            User::name { minLength(10) }
+        }
+
+        config.register(firstValidator)
+        config.register(secondValidator)
+
+        // Should have only one validator (latest one)
+        assertEquals(1, config.validators.size)
     }
 
     @Test
-    fun testAcceptAllStatusCodes() {
+    fun testValidatorWithNullableFields() {
+        @Serializable
+        data class OptionalUser(
+            val id: String,
+            val name: String?,
+            val email: String?
+        )
+
+        val optionalValidator = atelierValidator<OptionalUser> {
+            OptionalUser::id { notBlank() }
+        }
+
+        val config = AtelierValidatorClientConfig()
+        config.register(optionalValidator)
+
+        assertNotNull(config.validators[OptionalUser::class])
+    }
+
+    @Test
+    fun testConfigIsolation() {
+        val config1 = AtelierValidatorClientConfig()
+        val config2 = AtelierValidatorClientConfig()
+
+        config1.register(userValidator)
+        config2.register(productValidator)
+
+        // Configs should be isolated
+        assertEquals(1, config1.validators.size)
+        assertEquals(1, config2.validators.size)
+        assertNotNull(config1.validators[User::class])
+        assertNull(config1.validators[Product::class])
+        assertNotNull(config2.validators[Product::class])
+        assertNull(config2.validators[User::class])
+    }
+
+    @Test
+    fun testAutomaticValidationToggle() {
         val config = AtelierValidatorClientConfig()
 
-        // Accept a very wide range
-        config.acceptStatusCodeRange(100..599)
+        // Can toggle multiple times
+        assertTrue(config.useAutomaticValidation)
 
-        assertTrue(HttpStatusCode.OK in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.BadRequest in config.acceptedStatusCodes)
-        assertTrue(HttpStatusCode.InternalServerError in config.acceptedStatusCodes)
+        config.useAutomaticValidation = false
+        assertFalse(config.useAutomaticValidation)
     }
 }

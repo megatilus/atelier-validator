@@ -56,12 +56,11 @@ public class AtelierValidatorConfig {
     /**
      * Determines whether to integrate automatically with Ktor's RequestValidation plugin.
      *
-     * When true, validation occurs automatically before route handlers are invoked.
-     * When false, validation must be performed manually using [receiveAndValidate].
+     * When true: Validation occurs automatically before route handlers are invoked.
+     * Use case: Simple APIs, prototyping, consistent validation across all routes.
      *
-     * **Security Note**: Manual validation (false) is recommended as it makes validation
-     * explicit and visible in your code. This prevents accidental security holes from
-     * forgotten validators.
+     * When false: Validation must be performed manually using [receiveAndValidate].
+     * Use case: Custom error handling, conditional validation, complex business logic.
      *
      * Default: true
      */
@@ -77,7 +76,7 @@ public class AtelierValidatorConfig {
      * Enabling this helps catch configuration errors early at startup rather than
      * at runtime when requests arrive.
      *
-     * Default: true (recommended for production safety)
+     * Default: true
      */
     public var validateAtStartup: Boolean = true
 
@@ -143,11 +142,11 @@ public class AtelierValidatorConfig {
                 if (!kClass.isInstance(obj)) {
                     throw IllegalArgumentException(
                         """
-                        |Type mismatch in validator:
-                        |  Expected: ${kClass.simpleName}
-                        |  Received: ${obj::class.simpleName}
+                        | Type mismatch in validator:
+                        |   Expected: ${kClass.simpleName}
+                        |   Received: ${obj::class.simpleName}
                         |
-                        |Make sure you're validating the correct object type.
+                        | Make sure you're validating the correct object type.
                         """.trimMargin()
                     )
                 }
@@ -158,11 +157,11 @@ public class AtelierValidatorConfig {
                 if (!kClass.isInstance(obj)) {
                     throw IllegalArgumentException(
                         """
-                        |Type mismatch in validator:
-                        |  Expected: ${kClass.simpleName}
-                        |  Received: ${obj::class.simpleName}
+                        | Type mismatch in validator:
+                        |   Expected: ${kClass.simpleName}
+                        |   Received: ${obj::class.simpleName}
                         |
-                        |Make sure you're validating the correct object type.
+                        | Make sure you're validating the correct object type.
                         """.trimMargin()
                     )
                 }

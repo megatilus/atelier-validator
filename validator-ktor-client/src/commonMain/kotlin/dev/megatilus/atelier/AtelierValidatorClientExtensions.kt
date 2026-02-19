@@ -38,12 +38,8 @@ import io.ktor.client.statement.*
  * @param T The type of object to deserialize and validate
  * @return The validated object
  * @throws AtelierClientValidationException if validation fails
- * @throws AtelierClientStatusException if status code is not accepted
  */
 public suspend inline fun <reified T : Any> HttpResponse.bodyAndValidate(): T {
-    // First validate status code
-    validateStatusCode()
-
     val obj = body<T>()
     val validator = getValidator<T>()
         ?: throw IllegalStateException("No validator registered for ${T::class.simpleName}")
@@ -53,8 +49,7 @@ public suspend inline fun <reified T : Any> HttpResponse.bodyAndValidate(): T {
 
         is ValidationResult.Failure -> throw AtelierClientValidationException(
             validationResult = result,
-            url = request.url.toString(),
-            statusCode = status
+            url = request.url.toString()
         )
     }
 }
@@ -87,14 +82,6 @@ public suspend inline fun <reified T : Any> HttpResponse.bodyAndValidate(): T {
 public suspend inline fun <reified T : Any> HttpResponse.bodyAndValidate(
     noinline onError: suspend (ValidationResult.Failure) -> Unit
 ): T? {
-    // First validate status code
-    try {
-        validateStatusCode()
-    } catch (_: AtelierClientStatusException) {
-        // Status code validation failed
-        return null
-    }
-
     val obj = body<T>()
     val validator = getValidator<T>() ?: return obj
 
@@ -130,7 +117,6 @@ public suspend inline fun <reified T : Any> HttpResponse.bodyAndValidate(
  */
 public suspend inline fun <reified T : Any> HttpResponse.bodyAndValidateOrNull(): T? {
     return try {
-        validateStatusCode()
         val obj = body<T>()
         val validator = getValidator<T>() ?: return obj
 
@@ -159,7 +145,6 @@ public suspend inline fun <reified T : Any> HttpResponse.bodyAndValidateOrNull()
  * @param block Optional configuration for the request
  * @return The validated response object
  * @throws AtelierClientValidationException if validation fails
- * @throws AtelierClientStatusException if status code is not accepted
  */
 public suspend inline fun <reified T : Any> HttpClient.getAndValidate(
     urlString: String,
@@ -183,7 +168,6 @@ public suspend inline fun <reified T : Any> HttpClient.getAndValidate(
  * @param block Optional configuration for the request
  * @return The validated response object
  * @throws AtelierClientValidationException if validation fails
- * @throws AtelierClientStatusException if status code is not accepted
  */
 public suspend inline fun <reified T : Any> HttpClient.postAndValidate(
     urlString: String,
@@ -207,7 +191,6 @@ public suspend inline fun <reified T : Any> HttpClient.postAndValidate(
  * @param block Optional configuration for the request
  * @return The validated response object
  * @throws AtelierClientValidationException if validation fails
- * @throws AtelierClientStatusException if status code is not accepted
  */
 public suspend inline fun <reified T : Any> HttpClient.putAndValidate(
     urlString: String,
@@ -231,7 +214,6 @@ public suspend inline fun <reified T : Any> HttpClient.putAndValidate(
  * @param block Optional configuration for the request
  * @return The validated response object
  * @throws AtelierClientValidationException if validation fails
- * @throws AtelierClientStatusException if status code is not accepted
  */
 public suspend inline fun <reified T : Any> HttpClient.patchAndValidate(
     urlString: String,
@@ -253,7 +235,6 @@ public suspend inline fun <reified T : Any> HttpClient.patchAndValidate(
  * @param block Optional configuration for the request
  * @return The validated response object
  * @throws AtelierClientValidationException if validation fails
- * @throws AtelierClientStatusException if status code is not accepted
  */
 public suspend inline fun <reified T : Any> HttpClient.deleteAndValidate(
     urlString: String,

@@ -7,7 +7,6 @@ package dev.megatilus.atelier
 
 import dev.megatilus.atelier.results.ValidationErrorDetail
 import dev.megatilus.atelier.results.ValidationResult
-import io.ktor.http.*
 import kotlinx.serialization.Serializable
 
 /**
@@ -30,17 +29,14 @@ import kotlinx.serialization.Serializable
  *
  * @property validationResult The validation failure containing detailed error information
  * @property url The URL of the request that produced the invalid response
- * @property statusCode The HTTP status code of the response
  */
 public class AtelierClientValidationException(
     public val validationResult: ValidationResult.Failure,
-    public val url: String? = null,
-    public val statusCode: HttpStatusCode? = null
+    public val url: String? = null
 ) : Exception(
     buildString {
         append("Response validation failed with ${validationResult.errorCount} error(s)")
         if (url != null) append(" for $url")
-        if (statusCode != null) append(" (status: ${statusCode.value})")
     }
 ) {
     /**
@@ -61,59 +57,6 @@ public class AtelierClientValidationException(
      */
     public fun errorsFor(fieldName: String): List<ValidationErrorDetail> {
         return validationResult.errorsFor(fieldName)
-    }
-}
-
-/**
- * Exception thrown when an unexpected HTTP status code is received.
- *
- * This exception is thrown before body validation when the response status code
- * is not in the configured [AtelierValidatorClientConfig.acceptedStatusCodes].
- *
- * Example:
- * ```kotlin
- * try {
- *     val user = client.get("/users/1").bodyAndValidate<User>()
- * } catch (e: AtelierClientStatusException) {
- *     when (e.statusCode) {
- *         HttpStatusCode.NotFound -> println("User not found")
- *         HttpStatusCode.Unauthorized -> println("Not authorized")
- *         else -> println("Unexpected status: ${e.statusCode}")
- *     }
- * }
- * ```
- *
- * @property statusCode The unexpected HTTP status code received
- * @property url The URL of the request
- * @property responseBody The response body as a string (maybe null if not available)
- */
-public class AtelierClientStatusException(
-    public val statusCode: HttpStatusCode,
-    public val url: String? = null,
-    public val responseBody: String? = null
-) : Exception(
-    buildString {
-        append("Unexpected status code: ${statusCode.value} ${statusCode.description}")
-        if (url != null) append(" for $url")
-    }
-) {
-    /**
-     * Checks if this exception represents a client error (4xx status code).
-     */
-    public val isClientError: Boolean
-        get() = statusCode.value in 400..499
-
-    /**
-     * Checks if this exception represents a server error (5xx status code).
-     */
-    public val isServerError: Boolean
-        get() = statusCode.value in 500..599
-
-    /**
-     * Returns the response body if available, or a default message.
-     */
-    public fun getResponseBodyOrDefault(default: String = "No response body"): String {
-        return responseBody ?: default
     }
 }
 
@@ -169,14 +112,12 @@ public data class ClientValidationErrorDetail(
  * @property message A general message indicating validation failure
  * @property errors List of detailed validation errors for each field
  * @property url The URL of the request that produced the invalid response
- * @property statusCode The HTTP status code of the response
  */
 @Serializable
 public data class ClientValidationErrorResponse(
     val message: String,
     val errors: List<ClientValidationErrorDetail>,
-    val url: String? = null,
-    val statusCode: Int? = null
+    val url: String? = null
 ) {
     public companion object {
         /**
@@ -191,8 +132,7 @@ public data class ClientValidationErrorResponse(
                 errors = exception.validationResult.errors.map {
                     ClientValidationErrorDetail.from(it, exception.url)
                 },
-                url = exception.url,
-                statusCode = exception.statusCode?.value
+                url = exception.url
             )
         }
 
@@ -201,21 +141,18 @@ public data class ClientValidationErrorResponse(
          *
          * @param failure The validation failure
          * @param url Optional URL of the request
-         * @param statusCode Optional HTTP status code
          * @return A structured error response
          */
         public fun from(
             failure: ValidationResult.Failure,
-            url: String? = null,
-            statusCode: HttpStatusCode? = null
+            url: String? = null
         ): ClientValidationErrorResponse {
             return ClientValidationErrorResponse(
                 message = "Response validation failed",
                 errors = failure.errors.map {
                     ClientValidationErrorDetail.from(it, url)
                 },
-                url = url,
-                statusCode = statusCode?.value
+                url = url
             )
         }
     }

@@ -15,8 +15,7 @@ import kotlin.reflect.KClass
 /**
  * Atelier Validator plugin for Ktor Client.
  *
- * Provides manual validation for HTTP response bodies with customizable error handling
- * and status code validation.
+ * Provides manual validation for HTTP response bodies with customizable error handling.
  *
  * **Use Case**: Validate responses from external/third-party APIs to ensure they
  * match your expected contract. This is useful for defensive programming when
@@ -27,7 +26,7 @@ import kotlin.reflect.KClass
  * val client = HttpClient {
  *     install(AtelierValidatorClient) {
  *         register(userValidator)
- *         register(productValidator)
+ *                                                                           register(productValidator)
  *     }
  * }
  *
@@ -40,9 +39,6 @@ import kotlin.reflect.KClass
  * val client = HttpClient {
  *     install(AtelierValidatorClient) {
  *         register(userValidator)
- *
- *         // Only accept specific status codes
- *         acceptStatusCodes(HttpStatusCode.OK, HttpStatusCode.Created)
  *     }
  * }
  * ```
@@ -79,21 +75,6 @@ public val AtelierValidatorClient: ClientPlugin<AtelierValidatorClientConfig> =
                 val kClass = requestedType.type
                 val validator = config.validators[kClass] ?: return@transformResponseBody body
 
-                // First, validate status code
-                if (response.status !in config.acceptedStatusCodes) {
-                    val responseBody = try {
-                        response.bodyAsText()
-                    } catch (_: Exception) {
-                        null
-                    }
-
-                    throw AtelierClientStatusException(
-                        statusCode = response.status,
-                        url = response.request.url.toString(),
-                        responseBody = responseBody
-                    )
-                }
-
                 // Body is already deserialized at this point, validate it
                 when (val result = validator.validate(body)) {
                     is ValidationResult.Success -> body
@@ -101,8 +82,7 @@ public val AtelierValidatorClient: ClientPlugin<AtelierValidatorClientConfig> =
                     is ValidationResult.Failure -> {
                         throw AtelierClientValidationException(
                             validationResult = result,
-                            url = response.request.url.toString(),
-                            statusCode = response.status
+                            url = response.request.url.toString()
                         )
                     }
                 }
@@ -167,28 +147,5 @@ internal fun <T : Any> getValidatorFromConfig(
 
         override fun validateFirst(obj: T): ValidationResult =
             anyValidator.validateFirst(obj)
-    }
-}
-
-/**
- * Validates a status code against the configured accepted status codes.
- *
- * @throws AtelierClientStatusException if the status code is not accepted
- */
-public suspend fun HttpResponse.validateStatusCode() {
-    val config = getValidatorConfig() ?: return
-
-    if (status !in config.acceptedStatusCodes) {
-        val responseBody = try {
-            bodyAsText()
-        } catch (_: Exception) {
-            null
-        }
-
-        throw AtelierClientStatusException(
-            statusCode = status,
-            url = request.url.toString(),
-            responseBody = responseBody
-        )
     }
 }

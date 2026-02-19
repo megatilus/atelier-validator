@@ -14,9 +14,9 @@ import io.ktor.server.response.*
 /**
  * Receives and validates a request body in one call.
  *
- * This is the recommended approach for manual validation. If validation fails,
- * this function automatically responds with an error using the configured error
- * format and returns null. If validation succeeds, it returns the validated object.
+ * If validation fails, this function automatically responds with an error using the
+ * configured error format and returns null. If validation succeeds, it returns the
+ * validated object.
  *
  * Example:
  * ```kotlin

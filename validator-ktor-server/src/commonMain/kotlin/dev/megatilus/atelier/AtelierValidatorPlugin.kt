@@ -35,7 +35,7 @@ import io.ktor.server.plugins.requestvalidation.ValidationResult as KtorValidati
  * }
  * ```
  *
- * **Manual validation (recommended for better control):**
+ * **Manual validation:**
  * ```kotlin
  * install(AtelierValidator) {
  *     register(userValidator)
@@ -98,7 +98,6 @@ public val AtelierValidatorPlugin: ApplicationPlugin<AtelierValidatorConfig> =
         // Automatic validation via RequestValidation plugin (opt-in)
         if (config.useAutomaticValidation) {
             // Install RequestValidation for automatic validation
-
             application.install(RequestValidation) {
                 config.validators.forEach { (kClass, validatorAny) ->
                     validate(kClass) { value ->
@@ -117,9 +116,6 @@ public val AtelierValidatorPlugin: ApplicationPlugin<AtelierValidatorConfig> =
 
             // Auto-install StatusPages if not present (to handle RequestValidationException)
             setupStatusPagesForAutomatic(application, config)
-        } else {
-            // Manual validation mode - just log warning about StatusPages
-            setupStatusPagesForManual(application)
         }
     }
 
@@ -142,16 +138,6 @@ private fun setupStatusPagesForAutomatic(application: Application, config: Ateli
     }
 
     application.log.info("StatusPages plugin auto-installed with validation handlers for automatic validation mode")
-}
-
-/**
- * Sets up StatusPages for manual validation mode.
- * Just logs a warning - no auto-install in manual mode.
- */
-private fun setupStatusPagesForManual(application: Application) {
-    // In manual validation mode, StatusPages is optional
-    // Users can install it if they want global exception handling
-    // No need to log anything - it's their choice
 }
 
 /**

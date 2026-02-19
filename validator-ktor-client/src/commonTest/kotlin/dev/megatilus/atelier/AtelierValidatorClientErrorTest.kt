@@ -11,12 +11,7 @@ import dev.megatilus.atelier.results.ValidatorCode
 import io.ktor.http.*
 import kotlin.test.*
 
-/**
- * Tests for client error classes and DTOs (simplified version).
- */
 class AtelierValidatorClientErrorTest {
-
-    // ==================== AtelierClientValidationException Tests ====================
 
     @Test
     fun testClientValidationExceptionCreation() {
@@ -33,13 +28,11 @@ class AtelierValidatorClientErrorTest {
 
         val exception = AtelierClientValidationException(
             validationResult = failure,
-            url = "https://api.example.com/users/1",
-            statusCode = HttpStatusCode.OK
+            url = "https://api.example.com/users/1"
         )
 
         assertEquals(failure, exception.validationResult)
         assertEquals("https://api.example.com/users/1", exception.url)
-        assertEquals(HttpStatusCode.OK, exception.statusCode)
         assertTrue(exception.message!!.contains("1 error(s)"))
         assertTrue(exception.message!!.contains("https://api.example.com/users/1"))
     }
@@ -54,7 +47,7 @@ class AtelierValidatorClientErrorTest {
             )
         )
 
-        val exception = AtelierClientValidationException(failure, "http://test.com", HttpStatusCode.OK)
+        val exception = AtelierClientValidationException(failure, "http://test.com")
 
         assertEquals(3, exception.validationResult.errorCount)
         assertTrue(exception.message!!.contains("3 error(s)"))
@@ -102,7 +95,7 @@ class AtelierValidatorClientErrorTest {
     }
 
     @Test
-    fun testClientValidationExceptionWithoutUrlAndStatus() {
+    fun testClientValidationExceptionWithoutUrl() {
         val failure = ValidationResult.Failure(
             errors = listOf(
                 ValidationErrorDetail("field", "error", ValidatorCode.REQUIRED, "")
@@ -112,90 +105,8 @@ class AtelierValidatorClientErrorTest {
         val exception = AtelierClientValidationException(failure)
 
         assertNull(exception.url)
-        assertNull(exception.statusCode)
-        assertFalse(exception.message!!.contains("for"))
-        assertFalse(exception.message!!.contains("status:"))
-    }
-
-    // ==================== AtelierClientStatusException Tests ====================
-
-    @Test
-    fun testClientStatusExceptionCreation() {
-        val exception = AtelierClientStatusException(
-            statusCode = HttpStatusCode.NotFound,
-            url = "https://api.example.com/users/999",
-            responseBody = """{"error":"User not found"}"""
-        )
-
-        assertEquals(HttpStatusCode.NotFound, exception.statusCode)
-        assertEquals("https://api.example.com/users/999", exception.url)
-        assertEquals("""{"error":"User not found"}""", exception.responseBody)
-        assertTrue(exception.message!!.contains("404"))
-        assertTrue(exception.message!!.contains("Not Found"))
-        assertTrue(exception.message!!.contains("https://api.example.com/users/999"))
-    }
-
-    @Test
-    fun testClientStatusExceptionIsClientError() {
-        val exception400 = AtelierClientStatusException(HttpStatusCode.BadRequest)
-        val exception404 = AtelierClientStatusException(HttpStatusCode.NotFound)
-        val exception499 = AtelierClientStatusException(HttpStatusCode.fromValue(499))
-
-        assertTrue(exception400.isClientError)
-        assertTrue(exception404.isClientError)
-        assertTrue(exception499.isClientError)
-    }
-
-    @Test
-    fun testClientStatusExceptionIsServerError() {
-        val exception500 = AtelierClientStatusException(HttpStatusCode.InternalServerError)
-        val exception502 = AtelierClientStatusException(HttpStatusCode.BadGateway)
-        val exception599 = AtelierClientStatusException(HttpStatusCode.fromValue(599))
-
-        assertTrue(exception500.isServerError)
-        assertTrue(exception502.isServerError)
-        assertTrue(exception599.isServerError)
-    }
-
-    @Test
-    fun testClientStatusExceptionNotClientOrServerError() {
-        val exception200 = AtelierClientStatusException(HttpStatusCode.OK)
-        val exception300 = AtelierClientStatusException(HttpStatusCode.MultipleChoices)
-
-        assertFalse(exception200.isClientError)
-        assertFalse(exception200.isServerError)
-        assertFalse(exception300.isClientError)
-        assertFalse(exception300.isServerError)
-    }
-
-    @Test
-    fun testClientStatusExceptionGetResponseBodyOrDefault() {
-        val exceptionWithBody = AtelierClientStatusException(
-            statusCode = HttpStatusCode.BadRequest,
-            responseBody = "Error details"
-        )
-
-        val exceptionWithoutBody = AtelierClientStatusException(
-            statusCode = HttpStatusCode.BadRequest
-        )
-
-        assertEquals("Error details", exceptionWithBody.getResponseBodyOrDefault())
-        assertEquals("No response body", exceptionWithoutBody.getResponseBodyOrDefault())
-        assertEquals("Custom default", exceptionWithoutBody.getResponseBodyOrDefault("Custom default"))
-    }
-
-    @Test
-    fun testClientStatusExceptionWithoutUrl() {
-        val exception = AtelierClientStatusException(
-            statusCode = HttpStatusCode.InternalServerError,
-            responseBody = "Server error"
-        )
-
-        assertNull(exception.url)
         assertFalse(exception.message!!.contains("for"))
     }
-
-    // ==================== ClientValidationErrorDetail Tests ====================
 
     @Test
     fun testClientValidationErrorDetailFrom() {
@@ -230,8 +141,6 @@ class AtelierValidatorClientErrorTest {
         assertNull(dto.url)
     }
 
-    // ==================== ClientValidationErrorResponse Tests ====================
-
     @Test
     fun testClientValidationErrorResponseFromException() {
         val failure = ValidationResult.Failure(
@@ -243,8 +152,7 @@ class AtelierValidatorClientErrorTest {
 
         val exception = AtelierClientValidationException(
             validationResult = failure,
-            url = "https://api.example.com/users/1",
-            statusCode = HttpStatusCode.OK
+            url = "https://api.example.com/users/1"
         )
 
         val response = ClientValidationErrorResponse.from(exception)
@@ -252,7 +160,6 @@ class AtelierValidatorClientErrorTest {
         assertEquals("Response validation failed", response.message)
         assertEquals(2, response.errors.size)
         assertEquals("https://api.example.com/users/1", response.url)
-        assertEquals(200, response.statusCode)
 
         assertTrue(response.errors.any { it.field == "email" })
         assertTrue(response.errors.any { it.field == "age" })
@@ -268,15 +175,13 @@ class AtelierValidatorClientErrorTest {
 
         val response = ClientValidationErrorResponse.from(
             failure = failure,
-            url = "https://api.example.com/products/1",
-            statusCode = HttpStatusCode.Created
+            url = "https://api.example.com/products/1"
         )
 
         assertEquals("Response validation failed", response.message)
         assertEquals(1, response.errors.size)
         assertEquals("name", response.errors[0].field)
         assertEquals("https://api.example.com/products/1", response.url)
-        assertEquals(201, response.statusCode)
     }
 
     @Test
@@ -298,7 +203,7 @@ class AtelierValidatorClientErrorTest {
     }
 
     @Test
-    fun testClientValidationErrorResponseWithoutUrlAndStatus() {
+    fun testClientValidationErrorResponseWithoutUrl() {
         val failure = ValidationResult.Failure(
             errors = listOf(
                 ValidationErrorDetail("field", "error", ValidatorCode.CUSTOM_ERROR, "value")
@@ -308,10 +213,7 @@ class AtelierValidatorClientErrorTest {
         val response = ClientValidationErrorResponse.from(failure)
 
         assertNull(response.url)
-        assertNull(response.statusCode)
     }
-
-    // ==================== Edge Cases ====================
 
     @Test
     fun testEmptyValidationFailure() {
