@@ -6,7 +6,6 @@
 package dev.megatilus.atelier
 
 import dev.megatilus.atelier.builders.FieldValidatorBuilder
-import dev.megatilus.atelier.validators.notBlank
 import kotlin.reflect.KProperty1
 
 /**
@@ -20,7 +19,7 @@ import kotlin.reflect.KProperty1
  *
  * @param T The type of object being validated
  */
-public class ValidatorDsl<T : Any> @PublishedApi internal constructor(
+public class ValidatorScope<T : Any> @PublishedApi internal constructor(
     private val validator: AtelierValidator<T>
 ) {
     /**
@@ -52,6 +51,6 @@ public class ValidatorDsl<T : Any> @PublishedApi internal constructor(
  * Internal extension function to support legacy field() syntax in tests.
  * Do not use in application code - use the property invoke syntax instead.
  */
-internal fun <T : Any, R> ValidatorDsl<T>.field(property: KProperty1<T, R>): FieldValidatorBuilder<T, R> {
+internal fun <T : Any, R> ValidatorScope<T>.field(property: KProperty1<T, R>): FieldValidatorBuilder<T, R> {
     return this.getFieldBuilder(property)
 }

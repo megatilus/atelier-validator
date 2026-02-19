@@ -8,11 +8,6 @@ package dev.megatilus.atelier
 import dev.megatilus.atelier.builders.FieldValidatorBuilder
 import dev.megatilus.atelier.builders.ValidatorBuilder
 import dev.megatilus.atelier.results.ValidationResult
-import dev.megatilus.atelier.validators.email
-import dev.megatilus.atelier.validators.minLength
-import dev.megatilus.atelier.validators.notBlank
-import dev.megatilus.atelier.validators.range
-import dev.megatilus.atelier.validators.strongPassword
 import kotlin.reflect.KProperty1
 
 /**
@@ -82,11 +77,11 @@ public class AtelierValidator<T : Any> : AtelierValidatorContract<T> {
  * @return A configured [AtelierValidatorContract] instance ready to use
  */
 public inline fun <reified T : Any> atelierValidator(
-    configure: ValidatorDsl<T>.() -> Unit
+    configure: ValidatorScope<T>.() -> Unit
 ): AtelierValidatorContract<T> {
     val validator = AtelierValidator<T>()
-    val dsl = ValidatorDsl(validator)
-    dsl.configure()
+    val scope = ValidatorScope(validator)
+    scope.configure()
 
     return validator
 }
