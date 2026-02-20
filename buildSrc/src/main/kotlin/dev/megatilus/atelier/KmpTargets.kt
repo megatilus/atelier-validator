@@ -12,7 +12,11 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
  * Configures all available targets on a Kotlin Multiplatform project.
  */
 @OptIn(ExperimentalWasmDsl::class)
-fun KotlinMultiplatformExtension.configureTargets() {
+fun KotlinMultiplatformExtension.configureTargets(
+    excludeTargets: Set<String> = emptySet()
+) {
+    fun String.isExcluded() = excludeTargets.contains(this)
+
     // JVM
     jvm()
 
@@ -45,7 +49,9 @@ fun KotlinMultiplatformExtension.configureTargets() {
         nodejs()
     }
 
-    wasmWasi {
-        nodejs()
+    if (!"wasmWasi".isExcluded()) {
+        wasmWasi {
+            nodejs()
+        }
     }
 }
