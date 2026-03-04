@@ -3,6 +3,8 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
+@file:OptIn(ExperimentalWasmDsl::class)
+
 package dev.megatilus.atelier
 
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -15,21 +17,26 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 fun KotlinMultiplatformExtension.configureTargets(
     excludeTargets: Set<String> = emptySet()
 ) {
-    fun String.isExcluded() = excludeTargets.contains(this)
-
-    // JVM
     jvm()
 
-    // JavaScript
     js(IR) {
+        browser()
         nodejs()
     }
 
-    // Apple Desktop
     macosX64()
     macosArm64()
 
-    // Apple Mobile
+    watchosArm32()
+    watchosArm64()
+    watchosDeviceArm64()
+    watchosSimulatorArm64()
+    watchosX64()
+
+    tvosArm64()
+    tvosSimulatorArm64()
+    tvosX64()
+
     iosArm64()
     iosSimulatorArm64()
     iosX64()
@@ -37,7 +44,6 @@ fun KotlinMultiplatformExtension.configureTargets(
     linuxArm64()
     linuxX64()
 
-    // Windows
     mingwX64()
 
     androidNativeArm32()
@@ -46,10 +52,11 @@ fun KotlinMultiplatformExtension.configureTargets(
     androidNativeX64()
 
     wasmJs {
+        browser()
         nodejs()
     }
 
-    if (!"wasmWasi".isExcluded()) {
+    if ("wasmWasi" !in excludeTargets) {
         wasmWasi {
             nodejs()
         }
