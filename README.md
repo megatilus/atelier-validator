@@ -1,12 +1,13 @@
-# 🎨 Atelier Validator
+# Atelier Validator
 
 A modern, type-safe validation library for **Kotlin Multiplatform** that makes data validation elegant, readable, and maintainable.
 
 > [!IMPORTANT]
 > Full documentation website coming soon
 
+![KMP](https://img.shields.io/badge/KMP-JVM%20%7C%20JS%20%7C%20iOS%20%7C%20Android-blue)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.3.10-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![Maven Central](https://img.shields.io/maven-central/v/dev.megatilus.atelier/validator-core.svg?label=Maven%20Central)](https://search.maven.org/artifact/dev.megatilus.atelier/validator-core)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.2.20-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ---

@@ -20,7 +20,6 @@ fun KotlinMultiplatformExtension.configureTargets(
     jvm()
 
     js(IR) {
-        browser()
         nodejs()
     }
 
@@ -52,7 +51,6 @@ fun KotlinMultiplatformExtension.configureTargets(
     androidNativeX64()
 
     wasmJs {
-        browser()
         nodejs()
     }
 

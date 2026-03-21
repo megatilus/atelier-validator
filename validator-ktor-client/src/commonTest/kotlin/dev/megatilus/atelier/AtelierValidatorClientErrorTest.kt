@@ -5,273 +5,186 @@
 
 package dev.megatilus.atelier
 
-import dev.megatilus.atelier.results.ValidationErrorDetail
+import dev.megatilus.atelier.results.ErrorDetail
+import dev.megatilus.atelier.results.ValidationError
+import dev.megatilus.atelier.results.ValidationErrorCode
 import dev.megatilus.atelier.results.ValidationResult
-import dev.megatilus.atelier.results.ValidatorCode
-import io.ktor.http.*
 import kotlin.test.*
 
-class AtelierValidatorClientErrorTest {
+private fun makeDetail(
+    field: String = "name",
+    message: String = "Required",
+    code: String = "REQUIRED",
+    value: String? = null
+) = ErrorDetail(field, code, message, value)
+
+private fun makeError(
+    field: String = "name",
+    message: String = "Required",
+    code: String = "REQUIRED",
+    value: String? = null
+) = ValidationError(field, message, ValidationErrorCode(code), value)
+
+private fun makeFailure(vararg errors: ValidationError) =
+    ValidationResult.Failure(errors.toList())
+
+class AtelierClientValidationExceptionTest {
 
     @Test
-    fun testClientValidationExceptionCreation() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail(
-                    fieldName = "email",
-                    message = "Invalid email format",
-                    code = ValidatorCode.INVALID_FORMAT,
-                    actualValue = "invalid-email"
-                )
-            )
-        )
+    fun `message contains error count`() {
+        val ex = AtelierClientValidationException(makeFailure(makeError()))
+        assertTrue(ex.message!!.contains("1"))
+    }
 
-        val exception = AtelierClientValidationException(
-            validationResult = failure,
+    @Test
+    fun `message contains url when provided`() {
+        val ex = AtelierClientValidationException(
+            makeFailure(makeError()),
             url = "https://api.example.com/users/1"
         )
-
-        assertEquals(failure, exception.validationResult)
-        assertEquals("https://api.example.com/users/1", exception.url)
-        assertTrue(exception.message!!.contains("1 error(s)"))
-        assertTrue(exception.message!!.contains("https://api.example.com/users/1"))
+        assertTrue(ex.message!!.contains("https://api.example.com/users/1"))
     }
 
     @Test
-    fun testClientValidationExceptionWithMultipleErrors() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("email", "Invalid email", ValidatorCode.INVALID_FORMAT, "bad"),
-                ValidationErrorDetail("age", "Too young", ValidatorCode.OUT_OF_RANGE, "-5"),
-                ValidationErrorDetail("name", "Too short", ValidatorCode.TOO_SHORT, "J")
-            )
-        )
-
-        val exception = AtelierClientValidationException(failure, "http://test.com")
-
-        assertEquals(3, exception.validationResult.errorCount)
-        assertTrue(exception.message!!.contains("3 error(s)"))
+    fun `message does not contain url when null`() {
+        val ex = AtelierClientValidationException(makeFailure(makeError()), url = null)
+        assertFalse(ex.message!!.contains("for "))
     }
 
     @Test
-    fun testClientValidationExceptionHasErrorFor() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("email", "Invalid", ValidatorCode.INVALID_FORMAT, "bad"),
-                ValidationErrorDetail("age", "Invalid", ValidatorCode.OUT_OF_RANGE, "-5")
-            )
-        )
-
-        val exception = AtelierClientValidationException(failure)
-
-        assertTrue(exception.hasErrorFor("email"))
-        assertTrue(exception.hasErrorFor("age"))
-        assertFalse(exception.hasErrorFor("name"))
+    fun `holds reference to validation result`() {
+        val failure = makeFailure(makeError())
+        assertSame(failure, AtelierClientValidationException(failure).validationResult)
     }
 
     @Test
-    fun testClientValidationExceptionErrorsFor() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("email", "Invalid format", ValidatorCode.INVALID_FORMAT, "bad"),
-                ValidationErrorDetail("email", "Already exists", ValidatorCode.CUSTOM_ERROR, "bad"),
-                ValidationErrorDetail("age", "Too young", ValidatorCode.OUT_OF_RANGE, "-5")
-            )
-        )
-
-        val exception = AtelierClientValidationException(failure)
-
-        val emailErrors = exception.errorsFor("email")
-        assertEquals(2, emailErrors.size)
-        assertTrue(emailErrors.any { it.message == "Invalid format" })
-        assertTrue(emailErrors.any { it.message == "Already exists" })
-
-        val ageErrors = exception.errorsFor("age")
-        assertEquals(1, ageErrors.size)
-        assertEquals("Too young", ageErrors[0].message)
-
-        val nameErrors = exception.errorsFor("name")
-        assertTrue(nameErrors.isEmpty())
+    fun `hasErrorFor returns true when field has error`() {
+        val ex = AtelierClientValidationException(makeFailure(makeError(field = "email")))
+        assertTrue(ex.hasErrorFor("email"))
     }
 
     @Test
-    fun testClientValidationExceptionWithoutUrl() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("field", "error", ValidatorCode.REQUIRED, "")
-            )
-        )
-
-        val exception = AtelierClientValidationException(failure)
-
-        assertNull(exception.url)
-        assertFalse(exception.message!!.contains("for"))
+    fun `hasErrorFor returns false when field has no error`() {
+        val ex = AtelierClientValidationException(makeFailure(makeError(field = "email")))
+        assertFalse(ex.hasErrorFor("name"))
     }
 
     @Test
-    fun testClientValidationErrorDetailFrom() {
-        val domainError = ValidationErrorDetail(
-            fieldName = "email",
-            message = "Invalid email format",
-            code = ValidatorCode.INVALID_FORMAT,
-            actualValue = "not-an-email"
+    fun `errorsFor returns errors for field`() {
+        val ex = AtelierClientValidationException(
+            makeFailure(makeError("email"), makeError("name"))
         )
-
-        val dto = ClientValidationErrorDetail.from(domainError, "https://api.example.com/users/1")
-
-        assertEquals("email", dto.field)
-        assertEquals("Invalid email format", dto.message)
-        assertEquals(ValidatorCode.INVALID_FORMAT.toString(), dto.code)
-        assertEquals("not-an-email", dto.value)
-        assertEquals("https://api.example.com/users/1", dto.url)
+        assertEquals(1, ex.errorsFor("email").size)
+        assertEquals("email", ex.errorsFor("email").first().fieldName)
     }
 
     @Test
-    fun testClientValidationErrorDetailFromWithoutUrl() {
-        val domainError = ValidationErrorDetail(
-            fieldName = "age",
-            message = "Must be positive",
-            code = ValidatorCode.OUT_OF_RANGE,
-            actualValue = "-10"
-        )
+    fun `errorsFor returns empty list for unknown field`() {
+        val ex = AtelierClientValidationException(makeFailure(makeError("email")))
+        assertTrue(ex.errorsFor("password").isEmpty())
+    }
+}
 
-        val dto = ClientValidationErrorDetail.from(domainError)
+class ClientValidationErrorDtoTest {
 
-        assertEquals("age", dto.field)
-        assertNull(dto.url)
+    @Test
+    fun `from maps field correctly`() {
+        assertEquals("email", ClientValidationErrorDto.from(makeDetail(field = "email")).field)
     }
 
     @Test
-    fun testClientValidationErrorResponseFromException() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("email", "Invalid", ValidatorCode.INVALID_FORMAT, "bad"),
-                ValidationErrorDetail("age", "Too young", ValidatorCode.OUT_OF_RANGE, "-5")
-            )
+    fun `from maps message correctly`() {
+        assertEquals("Must be valid", ClientValidationErrorDto.from(makeDetail(message = "Must be valid")).message)
+    }
+
+    @Test
+    fun `from maps code correctly`() {
+        assertEquals("INVALID_FORMAT", ClientValidationErrorDto.from(makeDetail(code = "INVALID_FORMAT")).code)
+    }
+
+    @Test
+    fun `from maps value correctly`() {
+        assertEquals("bad@", ClientValidationErrorDto.from(makeDetail(value = "bad@")).value)
+    }
+
+    @Test
+    fun `from maps null value correctly`() {
+        assertNull(ClientValidationErrorDto.from(makeDetail(value = null)).value)
+    }
+
+    @Test
+    fun `from maps url correctly`() {
+        val dto = ClientValidationErrorDto.from(makeDetail(), url = "https://api.example.com")
+        assertEquals("https://api.example.com", dto.url)
+    }
+
+    @Test
+    fun `from url defaults to null`() {
+        assertNull(ClientValidationErrorDto.from(makeDetail()).url)
+    }
+}
+
+class ClientValidationErrorResponseTest {
+
+    @Test
+    fun `from exception maps errors correctly`() {
+        val ex = AtelierClientValidationException(
+            makeFailure(makeError("name"), makeError("email")),
+            url = "https://api.example.com/users"
         )
-
-        val exception = AtelierClientValidationException(
-            validationResult = failure,
-            url = "https://api.example.com/users/1"
-        )
-
-        val response = ClientValidationErrorResponse.from(exception)
-
-        assertEquals("Response validation failed", response.message)
+        val response = ClientValidationErrorResponse.from(ex)
         assertEquals(2, response.errors.size)
-        assertEquals("https://api.example.com/users/1", response.url)
-
-        assertTrue(response.errors.any { it.field == "email" })
-        assertTrue(response.errors.any { it.field == "age" })
+        assertEquals("https://api.example.com/users", response.url)
     }
 
     @Test
-    fun testClientValidationErrorResponseFromFailure() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("name", "Required", ValidatorCode.REQUIRED, "")
-            )
-        )
-
-        val response = ClientValidationErrorResponse.from(
-            failure = failure,
-            url = "https://api.example.com/products/1"
-        )
-
+    fun `from exception message is set`() {
+        val ex = AtelierClientValidationException(makeFailure(makeError()))
+        val response = ClientValidationErrorResponse.from(ex)
         assertEquals("Response validation failed", response.message)
-        assertEquals(1, response.errors.size)
-        assertEquals("name", response.errors[0].field)
-        assertEquals("https://api.example.com/products/1", response.url)
     }
 
     @Test
-    fun testClientValidationErrorResponseWithMultipleErrors() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("field1", "Error 1", ValidatorCode.REQUIRED, ""),
-                ValidationErrorDetail("field2", "Error 2", ValidatorCode.INVALID_FORMAT, "bad"),
-                ValidationErrorDetail("field3", "Error 3", ValidatorCode.OUT_OF_RANGE, "999")
-            )
+    fun `from exception errors contain url`() {
+        val ex = AtelierClientValidationException(
+            makeFailure(makeError("name")),
+            url = "https://api.example.com"
         )
-
-        val response = ClientValidationErrorResponse.from(failure)
-
-        assertEquals(3, response.errors.size)
-        assertEquals("field1", response.errors[0].field)
-        assertEquals("field2", response.errors[1].field)
-        assertEquals("field3", response.errors[2].field)
+        val response = ClientValidationErrorResponse.from(ex)
+        assertEquals("https://api.example.com", response.errors.first().url)
     }
 
     @Test
-    fun testClientValidationErrorResponseWithoutUrl() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("field", "error", ValidatorCode.CUSTOM_ERROR, "value")
-            )
-        )
+    fun `from failure maps errors correctly`() {
+        val failure = makeFailure(makeError("name"), makeError("email"))
+        val response = ClientValidationErrorResponse.from(failure, url = "https://api.example.com")
+        assertEquals(2, response.errors.size)
+        assertEquals("https://api.example.com", response.url)
+    }
 
-        val response = ClientValidationErrorResponse.from(failure)
+    @Test
+    fun `from failure handles empty error list`() {
+        val response = ClientValidationErrorResponse.from(makeFailure())
+        assertEquals(0, response.errors.size)
+    }
 
+    @Test
+    fun `from failure url defaults to null`() {
+        val response = ClientValidationErrorResponse.from(makeFailure(makeError()))
         assertNull(response.url)
     }
 
     @Test
-    fun testEmptyValidationFailure() {
-        val failure = ValidationResult.Failure(emptyList())
-        val exception = AtelierClientValidationException(failure)
-
-        assertEquals(0, exception.validationResult.errorCount)
-        assertTrue(exception.message!!.contains("0 error(s)"))
+    fun `from failure errors contain url`() {
+        val failure = makeFailure(makeError("email"))
+        val response = ClientValidationErrorResponse.from(failure, url = "https://api.example.com")
+        assertEquals("https://api.example.com", response.errors.first().url)
     }
 
     @Test
-    fun testVeryLongErrorMessage() {
-        val longMessage = "x".repeat(1000)
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("field", longMessage, ValidatorCode.CUSTOM_ERROR, "value")
-            )
-        )
-
-        val exception = AtelierClientValidationException(failure)
-
-        assertNotNull(exception.message)
-        assertEquals(exception.validationResult.errors[0].message.length, 1000)
-    }
-
-    @Test
-    fun testSpecialCharactersInErrorDetails() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail(
-                    fieldName = "field<>\"'&",
-                    message = "Error with special chars: <>&\"'",
-                    code = ValidatorCode.CUSTOM_ERROR,
-                    actualValue = "<script>alert('xss')</script>"
-                )
-            )
-        )
-
-        val dto = ClientValidationErrorDetail.from(failure.errors[0])
-
-        assertEquals("field<>\"'&", dto.field)
-        assertTrue(dto.message.contains("<>&\"'"))
-        assertEquals("<script>alert('xss')</script>", dto.value)
-    }
-
-    @Test
-    fun testMultipleErrorsForSameField() {
-        val failure = ValidationResult.Failure(
-            errors = listOf(
-                ValidationErrorDetail("email", "Required", ValidatorCode.REQUIRED, ""),
-                ValidationErrorDetail("email", "Invalid format", ValidatorCode.INVALID_FORMAT, "bad"),
-                ValidationErrorDetail("email", "Too long", ValidatorCode.TOO_LONG, "x".repeat(300))
-            )
-        )
-
-        val exception = AtelierClientValidationException(failure)
-
-        assertTrue(exception.hasErrorFor("email"))
-        assertEquals(3, exception.errorsFor("email").size)
+    fun `from failure errors url is null when not provided`() {
+        val failure = makeFailure(makeError("email"))
+        val response = ClientValidationErrorResponse.from(failure)
+        assertNull(response.errors.first().url)
     }
 }

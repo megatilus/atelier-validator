@@ -5,25 +5,20 @@
 
 package dev.megatilus.atelier
 
-import dev.megatilus.atelier.results.ValidationErrorDetail
+import dev.megatilus.atelier.results.ErrorDetail
+import dev.megatilus.atelier.results.ValidationError
 import dev.megatilus.atelier.results.ValidationResult
 import kotlinx.serialization.Serializable
 
 /**
- * Exception thrown when response validation fails.
- *
- * This exception is thrown when the response body fails validation against
- * the registered validator for its type.
+ * Exception thrown when response validation fails on the client side.
  *
  * Example:
  * ```kotlin
  * try {
- *     val user = client.get("/users/1").bodyAndValidate<User>()
+ *     val user = response.bodyAndValidate<User>()
  * } catch (e: AtelierClientValidationException) {
- *     println("Validation failed:")
- *     e.validationResult.errors.forEach { error ->
- *         println("  ${error.fieldName}: ${error.message}")
- *     }
+ *     e.validationResult.errors.forEach { println("${it.fieldName}: ${it.message}") }
  * }
  * ```
  *
@@ -41,119 +36,101 @@ public class AtelierClientValidationException(
 ) {
     /**
      * Checks if this validation failure contains an error for the specified field.
-     *
-     * @param fieldName The name of the field to check
-     * @return true if the field has validation errors, false otherwise
      */
-    public fun hasErrorFor(fieldName: String): Boolean {
-        return validationResult.errorsFor(fieldName).isNotEmpty()
-    }
+    public fun hasErrorFor(fieldName: String): Boolean =
+        validationResult.errorsFor(fieldName).isNotEmpty()
 
     /**
      * Returns all validation errors for a specific field.
-     *
-     * @param fieldName The name of the field
-     * @return List of validation errors for the field, or empty list if no errors
      */
-    public fun errorsFor(fieldName: String): List<ValidationErrorDetail> {
-        return validationResult.errorsFor(fieldName)
-    }
+    public fun errorsFor(fieldName: String): List<ValidationError> =
+        validationResult.errorsFor(fieldName)
 }
 
 /**
- * Data transfer object for client validation errors.
+ * Data transfer object for a single client-side validation error.
  *
- * This class represents a validation error in a format suitable for logging,
- * metrics, or custom error handling on the client side.
+ * Serializable presentation layer wrapper around [ErrorDetail] from the core.
+ * Adds [url] context specific to client-side HTTP responses.
  *
  * @property field The name of the field that failed validation
- * @property message Human-readable error message describing the validation failure
+ * @property message Human-readable error message
  * @property code The validation error code
- * @property value The actual value that failed validation (as a string)
+ * @property value The actual value that failed validation
  * @property url The URL of the request that produced the invalid response
  */
 @Serializable
-public data class ClientValidationErrorDetail(
+public data class ClientValidationErrorDto(
     val field: String,
     val message: String,
     val code: String,
-    val value: String,
+    val value: String?,
     val url: String? = null
 ) {
     public companion object {
         /**
-         * Creates a DTO from a domain validation error detail.
+         * Creates a DTO from an [ErrorDetail] produced by the core.
          *
-         * @param error The validation error detail from the domain model
-         * @param url Optional URL of the request
-         * @return A serializable DTO representation of the error
+         * @param detail The error detail from [ValidationResult.Failure.toDetailedList]
+         * @param url Optional URL of the originating request
          */
-        public fun from(
-            error: ValidationErrorDetail,
-            url: String? = null
-        ): ClientValidationErrorDetail {
-            return ClientValidationErrorDetail(
-                field = error.fieldName,
-                message = error.message,
-                code = error.code.toString(),
-                value = error.actualValue,
+        public fun from(detail: ErrorDetail, url: String? = null): ClientValidationErrorDto =
+            ClientValidationErrorDto(
+                field = detail.field,
+                message = detail.message,
+                code = detail.code,
+                value = detail.actualValue,
                 url = url
             )
-        }
     }
 }
 
 /**
- * Client validation error response format.
+ * Client-side validation error response format.
  *
- * This class provides a structured representation of validation errors
- * for client-side error handling, logging, or display.
+ * Provides a structured representation for logging, metrics, or display.
  *
  * @property message A general message indicating validation failure
- * @property errors List of detailed validation errors for each field
+ * @property errors List of detailed validation errors per field
  * @property url The URL of the request that produced the invalid response
  */
 @Serializable
 public data class ClientValidationErrorResponse(
     val message: String,
-    val errors: List<ClientValidationErrorDetail>,
+    val errors: List<ClientValidationErrorDto>,
     val url: String? = null
 ) {
     public companion object {
         /**
-         * Creates an error response from a validation exception.
+         * Creates a response from an [AtelierClientValidationException].
          *
-         * @param exception The validation exception
-         * @return A structured error response
+         * Delegates to [ValidationResult.Failure.toDetailedList] from the core.
          */
-        public fun from(exception: AtelierClientValidationException): ClientValidationErrorResponse {
-            return ClientValidationErrorResponse(
+        public fun from(exception: AtelierClientValidationException): ClientValidationErrorResponse =
+            ClientValidationErrorResponse(
                 message = "Response validation failed",
-                errors = exception.validationResult.errors.map {
-                    ClientValidationErrorDetail.from(it, exception.url)
-                },
+                errors = exception.validationResult.toDetailedList()
+                    .map { ClientValidationErrorDto.from(it, exception.url) },
                 url = exception.url
             )
-        }
 
         /**
-         * Creates an error response from a validation failure.
+         * Creates a response from a [ValidationResult.Failure].
+         *
+         * Delegates to [ValidationResult.Failure.toDetailedList] from the core.
          *
          * @param failure The validation failure
-         * @param url Optional URL of the request
-         * @return A structured error response
+         * @param url Optional URL of the originating request
          */
         public fun from(
             failure: ValidationResult.Failure,
             url: String? = null
-        ): ClientValidationErrorResponse {
-            return ClientValidationErrorResponse(
+        ): ClientValidationErrorResponse =
+            ClientValidationErrorResponse(
                 message = "Response validation failed",
-                errors = failure.errors.map {
-                    ClientValidationErrorDetail.from(it, url)
-                },
+                errors = failure.toDetailedList()
+                    .map { ClientValidationErrorDto.from(it, url) },
                 url = url
             )
-        }
     }
 }

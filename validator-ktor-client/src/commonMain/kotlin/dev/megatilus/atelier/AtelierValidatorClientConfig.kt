@@ -6,7 +6,6 @@
 package dev.megatilus.atelier
 
 import dev.megatilus.atelier.results.ValidationResult
-import io.ktor.http.*
 import kotlin.reflect.KClass
 
 /**
@@ -35,12 +34,12 @@ public class AtelierValidatorClientConfig {
      * Each validator is stored with its corresponding KClass as the key,
      * allowing type-safe retrieval during response validation.
      */
-    public val validators: MutableMap<KClass<*>, AtelierValidatorContract<Any>> = mutableMapOf()
+    public val validators: MutableMap<KClass<*>, AtelierValidator<Any>> = mutableMapOf()
 
     /**
      * Determines whether to validate responses automatically.
      *
-     * When true, all responses for registered types are validated automatically.
+     * When true (default), all responses for registered types are validated automatically.
      *
      * When false, validation must be performed manually using extension functions.
      *
@@ -56,7 +55,7 @@ public class AtelierValidatorClientConfig {
      *
      * Example:
      * ```kotlin
-     * val userValidator = atelierValidator<User> {
+     * val userValidator = AtelierValidator<User> {
      *     User::id { notBlank() }
      *     User::email { email() }
      *     User::age { min(0); max(150) }
@@ -73,9 +72,9 @@ public class AtelierValidatorClientConfig {
      * @param validator The validator instance for this type
      * @throws IllegalArgumentException if an object of incorrect type is validated
      */
-    public inline fun <reified T : Any> register(validator: AtelierValidatorContract<T>) {
+    public inline fun <reified T : Any> register(validator: AtelierValidator<T>) {
         val kClass = T::class
-        val wrapper = object : AtelierValidatorContract<Any> {
+        val wrapper = object : AtelierValidator<Any> {
             override fun validate(obj: Any): ValidationResult {
                 if (!kClass.isInstance(obj)) {
                     throw IllegalArgumentException(
