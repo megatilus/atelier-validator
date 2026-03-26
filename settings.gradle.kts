@@ -6,7 +6,7 @@ pluginManagement {
 
 rootProject.name = "atelier-validator"
 
-include("validator-core")
-include("validator-kotlinx-datetime")
-include("validator-ktor-server")
-include("validator-ktor-client")
+include("atelier-validator-core")
+include("atelier-validator-kotlinx-datetime")
+include("atelier-validator-ktor-server")
+include("atelier-validator-ktor-client")

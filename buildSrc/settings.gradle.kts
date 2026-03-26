@@ -1,5 +1,3 @@
-rootProject.name = "atelier-validator"
-
 dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
